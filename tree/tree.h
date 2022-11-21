@@ -11,9 +11,7 @@
 const char *const LOGFILENAME = "log/treelog.html";
 extern FILE *LOG;
 
-const int    POISON_INT_VAL = 228;
-const double POISON_DBL_VAL = -1;
-const char   POISON_CHR_VAL = 'f';
+const double POISON_DBL_VAL = double (0xE10007DA1488F288);
 
 struct TreeInfo_t
 {
@@ -25,10 +23,14 @@ struct TreeInfo_t
 
 struct TreeElem_t
 {
-    int      type;
-    int     opval;
-    char   varval;
-    double dblval;
+    int type;
+
+    union v{
+        int     opval;
+        char   varval;
+        double dblval;
+    } value;
+
     TreeElem_t*  left;
     TreeElem_t* right;
 };
@@ -72,17 +74,23 @@ enum TREEERRORS
 
 enum NODE_TYPES
 {
+    TYPE_PSN = 0,
     TYPE_OP  = 1,
-    TYPE_DBL = 2,
+    TYPE_NUM = 2,
     TYPE_VAR = 3,
 };
 
 enum OPERATORS
 {
-    OP_ADD = 1,
-    OP_SUB = 2,
-    OP_MUL = 3,
-    OP_DIV = 4,
+    OP_ADD =  1,
+    OP_SUB =  2,
+    OP_MUL =  3,
+    OP_DIV =  4,
+    OP_POW =  5,
+    OP_LN  =  6,
+    OP_SIN =  7,
+    OP_COS =  8,
+    OP_TAN =  9,
 };
 
 
@@ -108,7 +116,7 @@ enum OPERATORS
 
 int Tree_ctor (Tree_t *tree, const char *name, const char *func_name, const char *file_name, int line);
 
-void Tree_set_psn_data (TreeElem_t *elem);
+void Tree_set_psn (TreeElem_t *elem);
 
 void Tree_set_info (Tree_t *tree, const char *name, const char *func_name, const char *file_name, int line);
 

@@ -8,7 +8,7 @@ int Tree_ctor (Tree_t *tree, const char *name, const char *func_name, const char
 
     Tree_set_info (tree, name, func_name, file_name, line);
 
-    Tree_set_psn_data (&(tree -> data));
+    Tree_set_psn (&(tree -> data));
 
     tree -> size = 1;
 
@@ -19,14 +19,12 @@ int Tree_ctor (Tree_t *tree, const char *name, const char *func_name, const char
     return TREE_OK;
 }
 
-void Tree_set_psn_data (TreeElem_t *elem)
+void Tree_set_psn (TreeElem_t *elem)
 {
-    elem -> left  = nullptr;
-    elem -> right = nullptr;
-    elem -> type   = POISON_INT_VAL;
-    elem -> dblval = POISON_DBL_VAL;
-    elem -> varval = POISON_CHR_VAL;
-    elem ->  opval = POISON_INT_VAL;
+    elem -> left         = nullptr;
+    elem -> right        = nullptr;
+    elem -> type         = TYPE_PSN;
+    elem -> value.dblval = POISON_DBL_VAL;
 }
 
 void Tree_set_info (Tree_t *tree, const char *name, const char *func_name, const char *file_name, int line)
@@ -45,7 +43,7 @@ int TreeDtor (Tree_t *tree)
     if (tree -> data. left) Tree_free_data (tree -> data. left, &(tree -> size));
     if (tree -> data.right) Tree_free_data (tree -> data.right, &(tree -> size));
 
-    Tree_set_psn_data (&(tree -> data));
+    Tree_set_psn (&(tree -> data));
 
     tree -> size = 0;
     

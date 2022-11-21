@@ -15,7 +15,7 @@ void TreePrintVal (FILE *stream, TreeElem_t *elem)
     {
     case TYPE_OP:
     {
-        switch (elem -> opval)
+        switch (elem -> value.opval)
         {
         case OP_ADD:
             fprintf (stream, "+");
@@ -32,19 +32,39 @@ void TreePrintVal (FILE *stream, TreeElem_t *elem)
         case OP_DIV:
             fprintf (stream, "/");
             break;
-            
+        
+        case OP_POW:
+            fprintf (stream, "^");
+            break;
+        
+        case OP_LN:
+            fprintf (stream, "ln");
+            break;
+        
+        case OP_SIN:
+            fprintf (stream, "sin");
+            break;
+        
+        case OP_COS:
+            fprintf (stream, "cos");
+            break;
+        
+        case OP_TAN:
+            fprintf (stream, "tan");
+            break;
+
         default:
             fprintf (stream, "unknown operator");
             break;
         }
         break;
     }
-    case TYPE_DBL:
-        fprintf (stream, "%lf", elem -> dblval);
+    case TYPE_NUM:
+        fprintf (stream, "%lf", elem -> value.dblval);
         break;
 
     case TYPE_VAR:
-        fprintf (stream, "%c", elem -> varval);
+        fprintf (stream, "%c", elem -> value.varval);
         break;
 
     default:
@@ -144,11 +164,8 @@ void Tree_draw_data (FILE *graph, TreeElem_t *elem, int rank, int *size)
     if (*size <= 0 || elem == nullptr) return;
 
     fprintf (graph, "r%d [style = invis];\n", rank);
-    fprintf (graph, "elem%p [label = \"{type = %d|opval = %d|dblval = %lf|varval = %c", elem, 
-                                                                                        elem ->   type,
-                                                                                        elem ->  opval,
-                                                                                        elem -> dblval,
-                                                                                        elem -> varval);
+    fprintf (graph, "elem%p [label = \"{type = %d|value = ", elem, elem -> type);
+    TreePrintVal (graph, elem);
 
     fprintf (graph, "|{{adress|left|right}|{%p|%p|%p}}}\"];\n", elem, elem -> left, elem -> right);
     fprintf (graph, "{rank = same; \"r%d\"; \"elem%p\"}", rank, elem);

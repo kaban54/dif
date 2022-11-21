@@ -8,14 +8,22 @@ int main()
     if (LOG == nullptr) return 0;
     fprintf (LOG, "<pre>\n");
 
-    Tree_t tree = {};
-    TreeCtor (&tree);
+    Tree_t func_tree = {};
+    TreeCtor (&func_tree);
 
-    LoadTree (&tree, "testtree.txt");
-    TreeDump (&tree);
-    SaveTree (&tree, "testtree.txt");
+    LoadTree (&func_tree, "testtree.txt");
+    TreeDump (&func_tree);
 
-    TreeDtor (&tree);
+    Tree_t der_tree = {};
+    TreeCtor (&der_tree);
+    
+    GetDerivative (&der_tree, &func_tree, 'x');
+    TreeDump (&der_tree);
+
+    SaveTree (&der_tree, "savetree.txt");
+
+    TreeDtor (&func_tree);
+    TreeDtor (& der_tree);
 
     fclose (LOG);
     return 0;
