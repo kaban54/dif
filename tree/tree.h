@@ -31,6 +31,7 @@ struct TreeElem_t
         double dblval;
     } value;
 
+    TreeElem_t* parent;
     TreeElem_t*  left;
     TreeElem_t* right;
 };
@@ -41,7 +42,7 @@ struct Tree_t
     int status;
     int err;
     int size;
-    
+
     TreeElem_t data;
 };
 

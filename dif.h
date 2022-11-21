@@ -9,6 +9,9 @@
 #include <math.h>
 
 
+const char *const TEXFILENAME = "tex/texfile.tex";
+extern FILE *TEX;
+
 enum ARITHMERRORS
 {
     ARITHM_OK            =  0,
@@ -19,10 +22,15 @@ enum ARITHMERRORS
     ARITHM_UNKNOWN_OP    = 16,
 };
 
+//DSL --------------------------------------------------------------------
+
+#define NUM(x) CreateNum (x)
 
 #define L (elem ->  left)
 #define R (elem -> right)
 
+#define   OP (elem -> value.opval)
+#define  VAL (elem -> value.dblval)
 #define LVAL (elem ->  left -> value.dblval)
 #define RVAL (elem -> right -> value.dblval)
 
@@ -47,6 +55,7 @@ enum ARITHMERRORS
 #define COS(node)        CreateOp (OP_COS, CreateNum (0), node)
 #define TAN(node)        CreateOp (OP_TAN ,CreateNum (0), node)
 
+// -----------------------------------------------------------------------
 
 int LoadTree (Tree_t *tree, const char *filename);
 

@@ -8,11 +8,14 @@ int LoadTree (Tree_t *tree, const char *filename)
 
     if (tree -> data.left || tree -> data.right) TreeErr (tree, TREE_INCORRECT_POSITION);
 
+    TreeAddLeft (tree, &(tree -> data), TreeAllocElem());
+    if (tree -> data.left == nullptr) TreeErr (tree, TREE_ALLOC_ERROR);
+
     FILE *file = fopen (filename, "r");
     if (file == nullptr) TreeErr (tree, TREE_NULLPTR_ARG);
 
     tree -> size = 0;
-    Read_tree (file, &(tree -> data), &(tree -> size));
+    Read_tree (file, tree -> data.left, &(tree -> size));
 
     fclose (file);
     TreeVerify (tree);
@@ -38,8 +41,10 @@ int Read_tree (FILE *file, TreeElem_t *elem, int *size)
         if (L == nullptr) return TREE_ALLOC_ERROR;
         if (R == nullptr) return TREE_ALLOC_ERROR;
         
-        err |= Read_tree (file, L, size);
+        L -> parent = elem;
+        R -> parent = elem;
 
+        err |= Read_tree (file, L, size);
         if (err) return err;
 
         err |= Read_op (file, elem);
@@ -145,7 +150,7 @@ int SaveTree (Tree_t *tree, const char *filename)
     FILE *file = fopen (filename, "w");
     if (file == nullptr) TreeErr (tree, TREE_NULLPTR_ARG);
 
-    Print_tree (file, &(tree -> data));
+    Print_tree (file, tree -> data.left);
 
     fclose (file);
     return TREE_OK;
@@ -170,7 +175,7 @@ int Tree_get_size (TreeElem_t *elem)
 
     int size = 1;
 
-    if (L ) size += Tree_get_size (L);
+    if (L) size += Tree_get_size (L);
     if (R) size += Tree_get_size (R);
 
     return size;
@@ -181,10 +186,12 @@ int GetDerivative (Tree_t *der_tree, Tree_t *func_tree, char var)
 {
     TreeVerify ( der_tree);
     TreeVerify (func_tree);
-    TreeElem_t *der = diff (&(func_tree -> data), var);
+    TreeElem_t *der = diff (func_tree -> data.left, var);
     der_tree -> size = Tree_get_size (der);
-    der_tree -> data = *der;
-    free (der);
+
+    der -> parent = &(der_tree -> data);
+    der_tree -> data.left = der;
+
     TreeVerify (der_tree);
     return TREE_OK;
 }
@@ -196,12 +203,12 @@ TreeElem_t *diff (TreeElem_t *elem, char var)
     switch (elem -> type)
     {
     case TYPE_NUM:
-        der = CreateNum (0);
+        der = NUM (0);
         break;
 
     case TYPE_VAR:
-        if (elem -> value.varval == var) der = CreateNum (1);
-        else                             der = CreateNum (0);
+        if (elem -> value.varval == var) der = NUM (1);
+        else                             der = NUM (0);
         break;
 
     case TYPE_OP:
@@ -224,9 +231,9 @@ TreeElem_t *diff_op (TreeElem_t *elem, char var)
     int var_l = FindVar (L, var);
     int var_r = FindVar (R, var);
 
-    if (!var_l && !var_r) return CreateNum (0);
+    if (!var_l && !var_r) return NUM (0);
 
-    switch (elem -> value.opval)
+    switch (OP)
     {
     case OP_ADD:
         return ADD (dL, dR);
@@ -247,10 +254,10 @@ TreeElem_t *diff_op (TreeElem_t *elem, char var)
         return MUL (COS (cR), dR);
         
     case OP_COS:
-        return MUL (CreateNum (-1), MUL (SIN (cR), dR));
+        return MUL (NUM (-1), MUL (SIN (cR), dR));
 
     case OP_TAN:
-        return DIV (dR, POW (COS (cR), CreateNum (2)));
+        return DIV (dR, POW (COS (cR), NUM (2)));
 
     default:
         return nullptr;
@@ -267,11 +274,11 @@ TreeElem_t *diff_mul (TreeElem_t *elem, char var, int var_l, int var_r)
 
 TreeElem_t *diff_div (TreeElem_t *elem, char var, int var_l, int var_r)
 {
-    if (var_l && var_r) return DIV (SUB (MUL (dL, cR), MUL (cL, dR)), POW (cR, CreateNum (2)));
+    if (var_l && var_r) return DIV (SUB (MUL (dL, cR), MUL (cL, dR)), POW (cR, NUM (2)));
     // (f / g)' = (f'g - fg') / g^2
     else if (var_l)     return DIV (dL, cR);
     // (f / c)' = f' / c
-    else                return MUL (cL, MUL (CreateNum (-1), DIV (dR, POW (cR, CreateNum (2)))));
+    else                return MUL (cL, MUL (NUM (-1), DIV (dR, POW (cR, NUM (2)))));
     // (c / f)' = c * (- f' / f^2)
 }
 
@@ -279,7 +286,7 @@ TreeElem_t *diff_pow (TreeElem_t *elem, char var, int var_l, int var_r)
 {
     if (var_l && var_r) return MUL (POW (cL, cR), ADD (MUL (cR, DIV (dL, cL)), MUL (LN (cL), dR))); 
     // (f^g)' = f^g * (g * f' / f + ln(f) * g')
-    else if (var_l)     return MUL (cR, MUL (POW (cL, SUB (cR, CreateNum (1))), dL));
+    else if (var_l)     return MUL (cR, MUL (POW (cL, SUB (cR, NUM (1))), dL));
     // (f^c)' = c * f^(c - 1) * f'
     else                return MUL(LN (cL), MUL (POW (cL, cR), dR));
     // (c^f)' = ln(c) * c^f * f'
@@ -428,6 +435,8 @@ int Calculate (TreeElem_t *elem)
     free (R);
     L = nullptr;
     R = nullptr;
+
+    return ARITHM_OK;
 }
 
 /*
@@ -445,8 +454,24 @@ int RemoveNeutrals (TreeElem_t *elem, int *size)
 }
 */
 
-
+/*
 void PrintTreeTex (TreeElem_t *elem)
+{
+    fprintf (TEX, "$");
+
+    Print_tree_tex (elem);
+
+    fprintf (TEX, "$");
+}
+
+void Print_tree_tex (TreeElem_t *elem)
 {
 
 }
+
+
+int GetOpRank (int op)
+{
+    if (op == )
+}
+*/

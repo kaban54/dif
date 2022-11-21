@@ -3,8 +3,9 @@
 const char *const IMGNUMFILE = "log/imgnum.txt";
 const char *const  GRAPHFILE = "log/graph.txt";
 
-const char *const  LEFTCOLOR = "green";
-const char *const RIGHTCOLOR =   "red";
+const char *const  LEFTCOLOR  = "green";
+const char *const RIGHTCOLOR  =   "red";
+const char *const PARENTCOLOR = "black";
 
 
 void TreePrintVal (FILE *stream, TreeElem_t *elem)
@@ -98,7 +99,7 @@ void Tree_txt_dmup (Tree_t *tree, FILE *stream, const char *func_name, const cha
     fprintf (stream, "\n\t");
     
     if (tree -> err & TREE_DATA_CORRUPTED) fprintf (stream, "data is corrupted");
-    else Tree_print_data (stream, &(tree -> data));
+    else Tree_print_data (stream, tree -> data.left);
 
     fprintf (stream, "\n}\n");
 }
@@ -147,8 +148,7 @@ void Tree_generate_img (Tree_t *tree, int imgnum)
     
     int size = tree -> size;
 
-    fprintf (graph, "r0 [style = invis];\n");
-    Tree_draw_data (graph, &(tree -> data), 1, &size);
+    Tree_draw_data (graph, &(tree -> data), 0, &size);
 
     fprintf (graph, "}");
 
@@ -161,16 +161,26 @@ void Tree_generate_img (Tree_t *tree, int imgnum)
 
 void Tree_draw_data (FILE *graph, TreeElem_t *elem, int rank, int *size)
 {
-    if (*size <= 0 || elem == nullptr) return;
+    if (*size < 0 || elem == nullptr) return;
 
     fprintf (graph, "r%d [style = invis];\n", rank);
     fprintf (graph, "elem%p [label = \"{type = %d|value = ", elem, elem -> type);
     TreePrintVal (graph, elem);
 
-    fprintf (graph, "|{{adress|left|right}|{%p|%p|%p}}}\"];\n", elem, elem -> left, elem -> right);
+    fprintf (graph, "|{{adress|parent|left|right}|{%p|%p|%p|%p}}}\"", elem, elem -> parent, elem -> left, elem -> right);
+    if (rank == 0)
+    {
+        fprintf (graph, ", color = red, fillcolor = white");
+    }
+    fprintf (graph, "];\n");
     fprintf (graph, "{rank = same; \"r%d\"; \"elem%p\"}", rank, elem);
 
     *size -= 1;
+
+    if (elem -> parent)
+    {
+        fprintf (graph, "elem%p -> elem%p [color = %s, weight = 1];\n", elem, elem -> parent, PARENTCOLOR);
+    }
 
     if (elem -> left)
     {

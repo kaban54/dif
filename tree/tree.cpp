@@ -10,7 +10,7 @@ int Tree_ctor (Tree_t *tree, const char *name, const char *func_name, const char
 
     Tree_set_psn (&(tree -> data));
 
-    tree -> size = 1;
+    tree -> size = 0;
 
     tree -> status = TREE_CONSTRUCTED;
 
@@ -21,6 +21,7 @@ int Tree_ctor (Tree_t *tree, const char *name, const char *func_name, const char
 
 void Tree_set_psn (TreeElem_t *elem)
 {
+    elem -> parent       = nullptr;
     elem -> left         = nullptr;
     elem -> right        = nullptr;
     elem -> type         = TYPE_PSN;
@@ -40,8 +41,7 @@ int TreeDtor (Tree_t *tree)
 {
     TreeVerify (tree);
 
-    if (tree -> data. left) Tree_free_data (tree -> data. left, &(tree -> size));
-    if (tree -> data.right) Tree_free_data (tree -> data.right, &(tree -> size));
+    if (tree -> data.left) Tree_free_data (tree -> data.left, &(tree -> size));
 
     Tree_set_psn (&(tree -> data));
 
@@ -87,6 +87,7 @@ int TreeAddElem (Tree_t *tree, TreeElem_t *parent, int position, TreeElem_t *new
     else if (position == RIGHT && !(parent -> right)) parent -> right = newelem;
     else TreeErr (tree, TREE_INCORRECT_POSITION);
 
+    newelem -> parent = parent;
     tree -> size ++;
 
     return TREE_OK;
@@ -111,14 +112,21 @@ int Tree_verify (Tree_t *tree)
     if (tree == nullptr) return TREE_NULLPTR_ARG;
 
     if (tree -> status != TREE_CONSTRUCTED) tree -> err |= TREE_STATUS_ERROR;
-    if (tree -> size <= 0)                  tree -> err |= TREE_INCORRECT_SIZE;
+    if (tree -> size < 0)                   tree -> err |= TREE_INCORRECT_SIZE;
 
     if (tree -> info.     name == nullptr ||
         tree -> info.file_name == nullptr ||
         tree -> info.func_name == nullptr   ) tree -> err |= TREE_INFO_CORRUPTED;
 
     int size = tree -> size;
-    tree -> err |= Tree_verify_data (&(tree -> data), &size);
+
+    if (tree -> data.right || tree -> data.parent) tree -> err |= TREE_DATA_CORRUPTED;
+
+    if (tree -> data.left)
+    {
+        if (tree -> data.left -> parent != &(tree -> data)) tree -> err |= TREE_DATA_CORRUPTED;
+        tree -> err |= Tree_verify_data (tree -> data.left, &size);
+    }
     if (size != 0) tree -> err |= TREE_INCORRECT_SIZE;
 
     return tree -> err;
@@ -131,8 +139,18 @@ int Tree_verify_data (TreeElem_t *elem, int *size)
 
     int err = TREE_OK;
 
-    if (elem ->  left) err |= Tree_verify_data (elem ->  left, size);
-    if (elem -> right) err |= Tree_verify_data (elem -> right, size);
+    if (elem -> value.dblval == POISON_DBL_VAL) err |= TREE_DATA_CORRUPTED;
+
+    if (elem -> left)
+    {   
+        if (elem -> left -> parent != elem) err |= TREE_DATA_CORRUPTED;
+        err |= Tree_verify_data (elem ->  left, size);
+    }
+    if (elem -> right)
+    {
+        if (elem -> right -> parent != elem) err |= TREE_DATA_CORRUPTED;
+        err |= Tree_verify_data (elem -> right, size);
+    }
 
     *size -= 1;
 
