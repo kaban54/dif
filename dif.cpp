@@ -83,41 +83,41 @@ int Read_op (FILE *file, TreeElem_t *elem)
     switch (ch)
     {
     case '+':
-        elem -> value.opval = OP_ADD;
+        OP = OP_ADD;
         break;
 
     case '-':
-        elem -> value.opval = OP_SUB;
+        OP = OP_SUB;
         break;
 
     case '*':
-        elem -> value.opval = OP_MUL;
+        OP = OP_MUL;
         break;
 
     case '/':
-        elem -> value.opval = OP_DIV;
+        OP = OP_DIV;
         break;
     
     case '^':
-        elem -> value.opval = OP_POW;
+        OP = OP_POW;
         break;
     
     case 'l':
-        elem -> value.opval = OP_LN;
+        OP = OP_LN;
         break;
     
     case 's':
-        elem -> value.opval = OP_SIN;
+        OP = OP_SIN;
         break;
 
     case 'c':
-        elem -> value.opval = OP_COS;
+        OP = OP_COS;
         break;
 
     default:
         return TREE_INCORRECT_FORMAT;
     }
-    elem -> type = TYPE_OP;
+    TYPE = TYPE_OP;
     return TREE_OK;
 }
 
@@ -128,13 +128,13 @@ int Read_value (FILE *file, TreeElem_t *elem)
     if (isdigit (ch))
     {
         ungetc (ch, file);
-        fscanf (file, "%lf", &(elem -> value.dblval));
-        elem -> type = TYPE_NUM;
+        fscanf (file, "%lf", &(VAL));
+        TYPE = TYPE_NUM;
     }
     else if (isalpha (ch))
     {
         elem -> value.varval = (char) ch;
-        elem -> type = TYPE_VAR;
+        TYPE = TYPE_VAR;
     }
     else return TREE_INCORRECT_FORMAT;
 
@@ -200,7 +200,7 @@ TreeElem_t *diff (TreeElem_t *elem, char var)
 {
     TreeElem_t *der = nullptr;
 
-    switch (elem -> type)
+    switch (TYPE)
     {
     case TYPE_NUM:
         der = NUM (0);
@@ -298,7 +298,7 @@ TreeElem_t *copy (TreeElem_t *elem)
     TreeElem_t *elem_cpy = TreeAllocElem ();
     if (elem_cpy == nullptr) return nullptr;
 
-    elem_cpy -> type  = elem -> type;
+    elem_cpy -> type  = TYPE;
     elem_cpy -> value = elem -> value;
 
     if (L) elem_cpy ->  left = copy (L);
@@ -327,6 +327,9 @@ TreeElem_t *CreateOp (int op, TreeElem_t *left, TreeElem_t *right)
     node -> left  = left;
     node -> right = right;
 
+    left  -> parent = node;
+    right -> parent = node;
+
     return node;
 }
 
@@ -348,13 +351,13 @@ TreeElem_t *Simplify (TreeElem_t *elem)
     int old_size = size;
 
     CalculateConsts (elem, &size);
-    //RemoveNeutrals  (elem, &size);
+    RemoveNeutrals  (elem, &size);
 
     while (size < old_size)
     {
         old_size = size;
         CalculateConsts (elem, &size);
-        //RemoveNeutrals  (elem, &size);
+        RemoveNeutrals  (elem, &size);
     }
 
     // Print to tex
@@ -364,7 +367,7 @@ TreeElem_t *Simplify (TreeElem_t *elem)
 
 int CalculateConsts (TreeElem_t *elem, int *size)
 {
-    if (elem -> type == TYPE_NUM || elem -> type == TYPE_VAR) return 0;
+    if (TYPE == TYPE_NUM || TYPE == TYPE_VAR) return 0;
 
     int err = ARITHM_OK;
 
@@ -378,59 +381,58 @@ int CalculateConsts (TreeElem_t *elem, int *size)
         if (err) return err;
         (*size) -= 2;
     }
-
+    // Print to tex
     return err;
 }
 
 int Calculate (TreeElem_t *elem)
 {
-    switch (elem -> value.opval)
+    switch (OP)
     {
     case OP_ADD:
-        elem -> value.dblval = LVAL + RVAL;
+        VAL = LVAL + RVAL;
         break;
     
     case OP_SUB:
-        elem -> value.dblval = LVAL - RVAL;
+        VAL = LVAL - RVAL;
         break;
     
     case OP_MUL:
-        elem -> value.dblval = LVAL * RVAL;
+        VAL = LVAL * RVAL;
         break;
     
     case OP_DIV:
         if (RVAL == 0) return ARITHM_DIV_BY_ZERO;
-        elem -> value.dblval = LVAL / RVAL;
+        VAL = LVAL / RVAL;
         break;
 
     case OP_POW:
-        if (LVAL == 0 && RVAL == 0)          return ARITHM_ZERO_POW_ZERO;
-        if (LVAL <  0 && RVAL != (int) RVAL) return ARITHM_ROOT_OF_NEG;
-        elem -> value.dblval = pow (LVAL, RVAL);
+        if (LVAL <= 0 && RVAL != (int) RVAL) return ARITHM_ROOT_OF_NEG;
+        VAL = pow (LVAL, RVAL);
         break;
 
     case OP_LN:
         if (RVAL <= 0) return ARITHM_LOG_OF_NEG;
-        elem -> value.dblval = log (RVAL);
+        VAL = log (RVAL);
         break;
     
     case OP_SIN:
-        elem -> value.dblval = sin (RVAL);
+        VAL = sin (RVAL);
         break;
     
     case OP_COS:
-        elem -> value.dblval = cos (RVAL);
+        VAL = cos (RVAL);
         break;
 
     case OP_TAN:
-        elem -> value.dblval = tan (RVAL);
+        VAL = tan (RVAL);
         break;
 
     default:
         return ARITHM_UNKNOWN_OP;
     }
 
-    elem -> type = TYPE_NUM;
+    TYPE = TYPE_NUM;
     free (L);
     free (R);
     L = nullptr;
@@ -439,20 +441,108 @@ int Calculate (TreeElem_t *elem)
     return ARITHM_OK;
 }
 
-/*
+
 int RemoveNeutrals (TreeElem_t *elem, int *size)
 {
-    if (elem -> type == TYPE_NUM || elem -> type == TYPE_VAR) return 0;
-    
-    if (L -> type == TYPE_OP)
-    {
-        while (1)
-        {
-            if (LL -> type)
-        }
-    }
+    if (TYPE == TYPE_NUM || TYPE == TYPE_VAR) return ARITHM_OK;
+
+    int err = ARITHM_OK;
+
+    err |= RemoveNeutrals (L, size);
+    err |= RemoveNeutrals (R, size);
+    if (err) return err;
+
+    if (LTYPE != TYPE_NUM && RTYPE != TYPE_NUM) return ARITHM_OK;
+
+    Remove_neutrals (elem, size);
+    // Print to tex
+    return err;
 }
-*/
+
+int Remove_neutrals (TreeElem_t *elem, int *size)
+{
+    switch (OP)
+    {
+    case OP_ADD:
+        if      (LIS0) Replace_with_right (elem, size);
+        else if (RIS0) Replace_with_left  (elem, size);
+        break;
+    
+    case OP_SUB:
+        if      (RIS0) Replace_with_left (elem, size);
+        else if (LIS0)
+        {
+            TreeElem_t *newelem = MUL (NUM (-1), R);
+            if (PL == elem) PL = newelem;
+            else            PR = newelem;
+            newelem -> parent = P;
+            free (L);
+            free (elem);
+        }
+        break;
+    
+    case OP_MUL:
+        if (LIS0 || RIS0) Replace_with_num   (elem, size, 0);
+        else if (LIS1)    Replace_with_right (elem, size);
+        else if (RIS1)    Replace_with_left  (elem, size);
+        break;
+    
+    case OP_DIV:
+        if      (RIS0) return ARITHM_DIV_BY_ZERO;
+        if      (RIS1) Replace_with_left (elem, size);
+        else if (LIS0) Replace_with_num  (elem, size, 0);
+        break;
+
+    case OP_POW:
+        if      (RIS0) Replace_with_num (elem, size, 1);
+        else if (LIS1) Replace_with_num (elem, size, 1);
+        else if (RIS1) Replace_with_left (elem, size);
+        else if (LIS0)
+        {
+            if (RTYPE == TYPE_NUM && RVAL < 0) return ARITHM_ROOT_OF_NEG;
+            else Replace_with_num (elem, size, 0);
+        }
+        break;
+
+    default:
+        break;
+    }
+    return 0;
+}
+
+void Replace_with_left (TreeElem_t *elem, int *size)
+{
+    free (R);
+    LP = P;
+    if (PL == elem) PL = L;
+    else            PR = L;
+    free (elem);
+    *size -= 2;
+}
+
+void Replace_with_right (TreeElem_t *elem, int *size)
+{
+    free (L);
+    RP = P;
+    if (PL == elem) PL = R;
+    else            PR = R;
+    free (elem);
+    *size -= 2;
+}
+
+void Replace_with_num (TreeElem_t *elem, int *size, double num)
+{
+    free (L);
+    free (R);
+
+    TreeElem_t *newelem = NUM (num);
+    newelem -> parent = P;
+    if (PL == elem) PL = newelem;
+    else            PR = newelem;
+
+    free (elem);
+    *size -= 2;
+}
 
 /*
 void PrintTreeTex (TreeElem_t *elem)

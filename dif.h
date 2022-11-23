@@ -17,33 +17,45 @@ enum ARITHMERRORS
     ARITHM_OK            =  0,
     ARITHM_DIV_BY_ZERO   =  1,
     ARITHM_ROOT_OF_NEG   =  2,
-    ARITHM_ZERO_POW_ZERO =  4,
-    ARITHM_LOG_OF_NEG    =  8,
-    ARITHM_UNKNOWN_OP    = 16,
+    ARITHM_LOG_OF_NEG    =  4,
+    ARITHM_UNKNOWN_OP    =  8,
 };
 
 //DSL --------------------------------------------------------------------
 
 #define NUM(x) CreateNum (x)
 
-#define L (elem ->  left)
-#define R (elem -> right)
+#define L (elem ->   left)
+#define R (elem ->  right)
+#define P (elem -> parent)
 
-#define   OP (elem -> value.opval)
-#define  VAL (elem -> value.dblval)
-#define LVAL (elem ->  left -> value.dblval)
-#define RVAL (elem -> right -> value.dblval)
+#define TYPE  (elem -> type)
+#define OP    (elem -> value.opval)
+#define VAL   (elem -> value.dblval)
+#define LVAL  (L    -> value.dblval)
+#define RVAL  (R    -> value.dblval)
+#define LTYPE (L    -> type)
+#define RTYPE (R    -> type)
 
-#define LL (elem ->  left ->  left)
-#define LR (elem ->  left -> right)
-#define RL (elem -> right ->  left)
-#define RR (elem -> right -> right)
+#define LL (L ->   left)
+#define LR (L ->  right)
+#define LP (L -> parent)
+#define RL (R ->   left)
+#define RR (R ->  right)
+#define RP (R -> parent)
+#define PL (P ->   left)
+#define PR (P ->  right)
 
-#define dL diff (elem ->  left, var)
-#define dR diff (elem -> right, var)
+#define LIS0 (LTYPE == TYPE_NUM && LVAL == 0)
+#define RIS0 (RTYPE == TYPE_NUM && RVAL == 0)
+#define LIS1 (LTYPE == TYPE_NUM && LVAL == 1)
+#define RIS1 (RTYPE == TYPE_NUM && RVAL == 1)
 
-#define cL copy (elem ->  left)
-#define cR copy (elem -> right)
+#define dL diff (L, var)
+#define dR diff (R, var)
+
+#define cL copy (L)
+#define cR copy (R)
 
 #define ADD(left, right) CreateOp (OP_ADD, left, right)
 #define SUB(left, right) CreateOp (OP_SUB, left, right)
@@ -99,5 +111,17 @@ TreeElem_t *Simplify (TreeElem_t *elem);
 int CalculateConsts (TreeElem_t *elem, int *size);
 
 int Calculate (TreeElem_t *elem);
+
+int RemoveNeutrals (TreeElem_t *elem, int *size);
+
+int Remove_neutrals (TreeElem_t *elem, int *size);
+
+void Replace_with_left (TreeElem_t *elem, int *size);
+
+void Replace_with_right (TreeElem_t *elem, int *size);
+
+void Replace_with_num (TreeElem_t *elem, int *size, double num);
+
+
 
 #endif
