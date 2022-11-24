@@ -182,11 +182,41 @@ int Tree_get_size (TreeElem_t *elem)
 }
 
 
-int GetDerivative (Tree_t *der_tree, Tree_t *func_tree, char var)
+void GeneratePdf (Tree_t *func_tree)
 {
+    FILE *texfile = fopen (TEXFILENAME, "w");
+    if (texfile == nullptr) return;
+    Print_tex_top (texfile);
+
+    Tree_t der_tree = {};
+    TreeCtor (&der_tree);
+
+    func_tree -> data.left = Simplify (func_tree -> data.left, texfile);
+    func_tree -> size = Tree_get_size (func_tree -> data.left);
+
+    GetDerivative (&der_tree, func_tree, 'x', texfile);
+    TreeDump (&der_tree);
+
+    SaveTree (&der_tree, "savetree.txt");
+
+    Print_tex_bottom (texfile);
+    fclose (texfile);
+
+    TreeDtor (& der_tree);
+
+    char cmd [BUFSIZE] = "";
+    sprintf (cmd, "pdflatex -output-directory ./tex %s", TEXFILENAME);
+    system (cmd);
+}
+
+
+int GetDerivative (Tree_t *der_tree, Tree_t *func_tree, char var, FILE *texfile)
+{
+    if (texfile == nullptr) return TREE_NULLPTR_ARG;
     TreeVerify ( der_tree);
     TreeVerify (func_tree);
-    TreeElem_t *der = diff (func_tree -> data.left, var);
+
+    TreeElem_t *der = diff (func_tree -> data.left, var, texfile);
     der_tree -> size = Tree_get_size (der);
 
     der -> parent = &(der_tree -> data);
@@ -196,9 +226,11 @@ int GetDerivative (Tree_t *der_tree, Tree_t *func_tree, char var)
     return TREE_OK;
 }
 
-TreeElem_t *diff (TreeElem_t *elem, char var)
+TreeElem_t *diff (TreeElem_t *elem, char var, FILE *texfile)
 {
     TreeElem_t *der = nullptr;
+
+    Print_before_diff (texfile, elem);
 
     switch (TYPE)
     {
@@ -212,21 +244,20 @@ TreeElem_t *diff (TreeElem_t *elem, char var)
         break;
 
     case TYPE_OP:
-        der = diff_op (elem, var);
+        der = diff_op (elem, var, texfile);
         break;
 
     default:
         return nullptr;
     }
 
-    // Print to tex
-
-    Simplify (der);
+    Print_after_diff (texfile, der);
+    der = Simplify (der, texfile);
 
     return der;
 }
 
-TreeElem_t *diff_op (TreeElem_t *elem, char var)
+TreeElem_t *diff_op (TreeElem_t *elem, char var, FILE *texfile)
 {
     int var_l = FindVar (L, var);
     int var_r = FindVar (R, var);
@@ -242,13 +273,13 @@ TreeElem_t *diff_op (TreeElem_t *elem, char var)
         return SUB (dL, dR);
 
     case OP_MUL:
-        return diff_mul (elem, var, var_l, var_r);
+        return diff_mul (elem, var, var_l, var_r, texfile);
 
     case OP_DIV:
-        return diff_div (elem, var, var_l, var_r);
+        return diff_div (elem, var, var_l, var_r, texfile);
 
     case OP_POW:
-        return diff_pow (elem, var, var_l, var_r);
+        return diff_pow (elem, var, var_l, var_r, texfile);
         
     case OP_SIN:
         return MUL (COS (cR), dR);
@@ -265,14 +296,14 @@ TreeElem_t *diff_op (TreeElem_t *elem, char var)
 }
 
 
-TreeElem_t *diff_mul (TreeElem_t *elem, char var, int var_l, int var_r)
+TreeElem_t *diff_mul (TreeElem_t *elem, char var, int var_l, int var_r, FILE *texfile)
 {
     if (var_l && var_r) return ADD (MUL (dL, cR), MUL (cL, dR));
     else if (var_l)     return MUL (cR, dL);
     else                return MUL (cL, dR);
 }
 
-TreeElem_t *diff_div (TreeElem_t *elem, char var, int var_l, int var_r)
+TreeElem_t *diff_div (TreeElem_t *elem, char var, int var_l, int var_r, FILE *texfile)
 {
     if (var_l && var_r) return DIV (SUB (MUL (dL, cR), MUL (cL, dR)), POW (cR, NUM (2)));
     // (f / g)' = (f'g - fg') / g^2
@@ -282,13 +313,13 @@ TreeElem_t *diff_div (TreeElem_t *elem, char var, int var_l, int var_r)
     // (c / f)' = c * (- f' / f^2)
 }
 
-TreeElem_t *diff_pow (TreeElem_t *elem, char var, int var_l, int var_r)
+TreeElem_t *diff_pow (TreeElem_t *elem, char var, int var_l, int var_r, FILE *texfile)
 {
     if (var_l && var_r) return MUL (POW (cL, cR), ADD (MUL (cR, DIV (dL, cL)), MUL (LN (cL), dR))); 
     // (f^g)' = f^g * (g * f' / f + ln(f) * g')
     else if (var_l)     return MUL (cR, MUL (POW (cL, SUB (cR, NUM (1))), dL));
     // (f^c)' = c * f^(c - 1) * f'
-    else                return MUL(LN (cL), MUL (POW (cL, cR), dR));
+    else return MUL (LN (cL), MUL (POW (cL, cR), dR));
     // (c^f)' = ln(c) * c^f * f'
 }
 
@@ -301,9 +332,16 @@ TreeElem_t *copy (TreeElem_t *elem)
     elem_cpy -> type  = TYPE;
     elem_cpy -> value = elem -> value;
 
-    if (L) elem_cpy ->  left = copy (L);
-    if (R) elem_cpy -> right = copy (R);
-
+    if (L)
+    {
+        elem_cpy -> left = copy (L);
+        elem_cpy -> left -> parent = elem_cpy;
+    }
+    if (R)
+    {
+        elem_cpy -> right = copy (R);
+        elem_cpy -> right -> parent = elem_cpy;
+    }
     return elem_cpy;
 }
 
@@ -319,18 +357,18 @@ TreeElem_t *CreateNum (double num)
 
 TreeElem_t *CreateOp (int op, TreeElem_t *left, TreeElem_t *right)
 {
-    TreeElem_t *node = TreeAllocElem ();
-    if (node == nullptr) return nullptr;
+    TreeElem_t *elem = TreeAllocElem ();
+    if (elem == nullptr) return nullptr;
 
-    node -> type = TYPE_OP;
-    node -> value.opval = op;
-    node -> left  = left;
-    node -> right = right;
+    TYPE = TYPE_OP;
+    OP = op;
+    L  = left;
+    R = right;
 
-    left  -> parent = node;
-    right -> parent = node;
+    LP = elem;
+    RP = elem;
 
-    return node;
+    return elem;
 }
 
 
@@ -345,47 +383,45 @@ int FindVar (TreeElem_t *node, char var)
 }
 
 
-TreeElem_t *Simplify (TreeElem_t *elem)
+TreeElem_t *Simplify (TreeElem_t *elem, FILE *texfile)
 {
+    Print_before_simplify (texfile, elem);
+
     int size = Tree_get_size (elem);
     int old_size = size;
 
-    CalculateConsts (elem, &size);
-    RemoveNeutrals  (elem, &size);
+    elem = CalculateConsts (elem, &size);
+    elem = RemoveNeutrals  (elem, &size);
 
     while (size < old_size)
     {
         old_size = size;
-        CalculateConsts (elem, &size);
-        RemoveNeutrals  (elem, &size);
+        elem = CalculateConsts (elem, &size);
+        elem = RemoveNeutrals  (elem, &size);
     }
 
-    // Print to tex
+    Print_after_simplify (texfile, elem);
 
     return elem;
 }
 
-int CalculateConsts (TreeElem_t *elem, int *size)
+TreeElem_t *CalculateConsts (TreeElem_t *elem, int *size)
 {
-    if (TYPE == TYPE_NUM || TYPE == TYPE_VAR) return 0;
+    if (TYPE == TYPE_NUM || TYPE == TYPE_VAR) return elem;
 
-    int err = ARITHM_OK;
+    L = CalculateConsts (L, size);
+    R = CalculateConsts (R, size);
 
-    err |= CalculateConsts (L, size);
-    err |= CalculateConsts (R, size);
-    if (err) return err;
-
-    if (L -> type == TYPE_NUM && R -> type == TYPE_NUM)
+    if (LTYPE == TYPE_NUM && RTYPE == TYPE_NUM)
     {
-        err |= Calculate (elem);
-        if (err) return err;
+        elem = Calculate (elem);
         (*size) -= 2;
     }
-    // Print to tex
-    return err;
+    // Print to tex ?
+    return elem;
 }
 
-int Calculate (TreeElem_t *elem)
+TreeElem_t *Calculate (TreeElem_t *elem)
 {
     switch (OP)
     {
@@ -402,17 +438,34 @@ int Calculate (TreeElem_t *elem)
         break;
     
     case OP_DIV:
-        if (RVAL == 0) return ARITHM_DIV_BY_ZERO;
+        if (RVAL == 0)
+        {
+            printf ("Division by zero in (%s) at line (%d)", __PRETTY_FUNCTION__, __LINE__);
+            return elem;
+        }
         VAL = LVAL / RVAL;
         break;
 
     case OP_POW:
-        if (LVAL <= 0 && RVAL != (int) RVAL) return ARITHM_ROOT_OF_NEG;
+        if (LVAL < 0 && RVAL != (int) RVAL) 
+        {
+            printf ("Root of negative in (%s) at line (%d)", __PRETTY_FUNCTION__, __LINE__);
+            return elem;
+        }
+        if (LVAL == 0 && RVAL < 0)
+        {
+            printf ("Negative power of zero in (%s) at line (%d)", __PRETTY_FUNCTION__, __LINE__);
+            return elem;
+        }
         VAL = pow (LVAL, RVAL);
         break;
 
     case OP_LN:
-        if (RVAL <= 0) return ARITHM_LOG_OF_NEG;
+        if (RVAL <= 0)
+        {
+            printf ("Log of negative in (%s) at line (%d)", __PRETTY_FUNCTION__, __LINE__);
+            return elem;
+        }
         VAL = log (RVAL);
         break;
     
@@ -429,7 +482,7 @@ int Calculate (TreeElem_t *elem)
         break;
 
     default:
-        return ARITHM_UNKNOWN_OP;
+        return elem;
     }
 
     TYPE = TYPE_NUM;
@@ -438,130 +491,337 @@ int Calculate (TreeElem_t *elem)
     L = nullptr;
     R = nullptr;
 
-    return ARITHM_OK;
+    return elem;
 }
 
 
-int RemoveNeutrals (TreeElem_t *elem, int *size)
+TreeElem_t *RemoveNeutrals (TreeElem_t *elem, int *size)
 {
-    if (TYPE == TYPE_NUM || TYPE == TYPE_VAR) return ARITHM_OK;
+    if (TYPE == TYPE_NUM || TYPE == TYPE_VAR) return elem;
 
-    int err = ARITHM_OK;
+    L = RemoveNeutrals (L, size);
+    R = RemoveNeutrals (R, size);
 
-    err |= RemoveNeutrals (L, size);
-    err |= RemoveNeutrals (R, size);
-    if (err) return err;
+    if (LTYPE != TYPE_NUM && RTYPE != TYPE_NUM) return elem;
 
-    if (LTYPE != TYPE_NUM && RTYPE != TYPE_NUM) return ARITHM_OK;
+    elem = Remove_neutrals (elem, size);
 
-    Remove_neutrals (elem, size);
-    // Print to tex
-    return err;
+    // Print to tex ?
+    return elem;
 }
 
-int Remove_neutrals (TreeElem_t *elem, int *size)
+TreeElem_t *Remove_neutrals (TreeElem_t *elem, int *size)
 {
     switch (OP)
     {
     case OP_ADD:
-        if      (LIS0) Replace_with_right (elem, size);
-        else if (RIS0) Replace_with_left  (elem, size);
+        if      (LIS0) elem = Replace_with_right (elem, size);
+        else if (RIS0) elem = Replace_with_left  (elem, size);
         break;
     
     case OP_SUB:
-        if      (RIS0) Replace_with_left (elem, size);
+        if      (RIS0) elem = Replace_with_left (elem, size);
         else if (LIS0)
         {
-            TreeElem_t *newelem = MUL (NUM (-1), R);
-            if (PL == elem) PL = newelem;
-            else            PR = newelem;
-            newelem -> parent = P;
-            free (L);
-            free (elem);
+            LVAL = -1;
+            OP = OP_MUL;
         }
         break;
     
     case OP_MUL:
-        if (LIS0 || RIS0) Replace_with_num   (elem, size, 0);
-        else if (LIS1)    Replace_with_right (elem, size);
-        else if (RIS1)    Replace_with_left  (elem, size);
+        if (LIS0 || RIS0) elem = Replace_with_num   (elem, size, 0);
+        else if (LIS1)    elem = Replace_with_right (elem, size);
+        else if (RIS1)    elem = Replace_with_left  (elem, size);
         break;
-    
+
     case OP_DIV:
-        if      (RIS0) return ARITHM_DIV_BY_ZERO;
-        if      (RIS1) Replace_with_left (elem, size);
-        else if (LIS0) Replace_with_num  (elem, size, 0);
+        if      (RIS0) 
+        {
+            printf ("Division by zero in (%s) at line (%d)", __PRETTY_FUNCTION__, __LINE__);
+            return elem;
+        }
+        if      (RIS1) elem = Replace_with_left (elem, size);
+        else if (LIS0) elem = Replace_with_num  (elem, size, 0);
         break;
 
     case OP_POW:
-        if      (RIS0) Replace_with_num (elem, size, 1);
-        else if (LIS1) Replace_with_num (elem, size, 1);
-        else if (RIS1) Replace_with_left (elem, size);
+        if      (RIS0) elem = Replace_with_num  (elem, size, 1);
+        else if (LIS1) elem = Replace_with_num  (elem, size, 1);
+        else if (RIS1) elem = Replace_with_left (elem, size);
         else if (LIS0)
         {
-            if (RTYPE == TYPE_NUM && RVAL < 0) return ARITHM_ROOT_OF_NEG;
-            else Replace_with_num (elem, size, 0);
+            if (RTYPE == TYPE_NUM && RVAL < 0)
+            {
+                printf ("Negative power of zero in (%s) at line (%d)", __PRETTY_FUNCTION__, __LINE__);
+                return elem;
+            }
+            else elem = Replace_with_num (elem, size, 0);
         }
         break;
 
     default:
         break;
     }
-    return 0;
+    return elem;
+}
+/*
+TreeElem_t *Remove_neutrals_add (TreeElem_t *elem, int *size)
+{
+
 }
 
-void Replace_with_left (TreeElem_t *elem, int *size)
+TreeElem_t *Remove_neutrals_sub (TreeElem_t *elem, int *size)
+{
+
+}
+
+TreeElem_t *Remove_neutrals_mul (TreeElem_t *elem, int *size)
+{
+
+}
+
+TreeElem_t *Remove_neutrals_div (TreeElem_t *elem, int *size)
+{
+
+}
+
+TreeElem_t *Remove_neutrals_pow (TreeElem_t *elem, int *size)
+{
+
+}
+*/
+TreeElem_t *Replace_with_left (TreeElem_t *elem, int *size)
 {
     free (R);
     LP = P;
-    if (PL == elem) PL = L;
-    else            PR = L;
+
+    if (P)
+    {
+        if (PL == elem) PL = L;
+        else            PR = L;
+    }
+
+    TreeElem_t *ret = L;
     free (elem);
     *size -= 2;
+    return ret;
 }
 
-void Replace_with_right (TreeElem_t *elem, int *size)
+TreeElem_t *Replace_with_right (TreeElem_t *elem, int *size)
 {
     free (L);
     RP = P;
-    if (PL == elem) PL = R;
-    else            PR = R;
+
+    if (P)
+    {
+        if (PL == elem) PL = R;
+        else            PR = R;
+    }
+
+    TreeElem_t *ret = L;
     free (elem);
     *size -= 2;
+    return ret;
 }
 
-void Replace_with_num (TreeElem_t *elem, int *size, double num)
+TreeElem_t *Replace_with_num (TreeElem_t *elem, int *size, double num)
 {
     free (L);
     free (R);
 
-    TreeElem_t *newelem = NUM (num);
-    newelem -> parent = P;
-    if (PL == elem) PL = newelem;
-    else            PR = newelem;
+    L = nullptr;
+    R = nullptr;
 
-    free (elem);
+    TYPE = TYPE_NUM;
+    VAL = num;
+
     *size -= 2;
+    return elem;
 }
 
-/*
-void PrintTreeTex (TreeElem_t *elem)
+
+
+int CompareTrees (TreeElem_t *elem1, TreeElem_t *elem2)
 {
-    fprintf (TEX, "$");
+    if (elem1 == nullptr || elem2 == nullptr) return 0;
+    if (elem1 -> type != elem2 -> type) return 0;
 
-    Print_tree_tex (elem);
-
-    fprintf (TEX, "$");
+    if (elem1 -> type == TYPE_OP)
+    {
+        if (elem1 -> value.opval != elem2 -> value.opval) return 0;
+        if (CompareTrees (elem1 -> left, elem2 ->  left) && CompareTrees (elem1 -> right, elem2 -> right)) return 1;
+        if (!OpCommutative (elem1 -> value.opval)) return 0;
+        if (CompareTrees (elem1 -> left, elem2 -> right) && CompareTrees (elem1 -> right, elem2 ->  left)) return 1;
+    }
+    else if (elem1 -> type == TYPE_NUM) return (elem1 -> value.dblval == elem2 -> value.dblval);
+    else if (elem1 -> type == TYPE_VAR) return (elem1 -> value.varval == elem2 -> value.varval);
+    return 0;
 }
 
-void Print_tree_tex (TreeElem_t *elem)
+int OpCommutative (int op)
 {
-
+    return (op == OP_ADD || op == OP_MUL);
 }
 
+
+void Print_tex_top (FILE *texfile)
+{
+    fprintf (texfile, "\\documentclass[12pt,a4paper,fleqn]{article}\n"
+                      "\\usepackage[utf8]{inputenc}\n"
+                      "\\usepackage[russian]{babel}\n");
+    fprintf (texfile, "\\begin{document}\nHEADER\\\\\\\\");
+}
+
+void Print_tex_bottom (FILE *texfile)
+{
+    fprintf (texfile, "\\end{document}");
+}
+
+
+
+void Print_before_diff (FILE *texfile, TreeElem_t *elem)
+{
+    fprintf (texfile, "Я РУССКИЙ!!! Before diff:\\\\\n");
+    PrintTreeTex (texfile, elem);
+    fprintf (texfile, "\\\\\n");
+}
+
+void Print_after_diff (FILE *texfile, TreeElem_t *elem)
+{
+    fprintf (texfile, "After diff:\\\\\n");
+    PrintTreeTex (texfile, elem);
+    fprintf (texfile, "\\\\\n");
+}
+
+void Print_before_simplify (FILE *texfile, TreeElem_t *elem)
+{
+    fprintf (texfile, "Before simplify:\\\\\n");
+    PrintTreeTex (texfile, elem);
+    fprintf (texfile, "\\\\\n");
+}
+
+void Print_after_simplify (FILE *texfile, TreeElem_t *elem)
+{
+    fprintf (texfile, "After simplify:\\\\\n");
+    PrintTreeTex (texfile, elem);
+    fprintf (texfile, "\\\\\n");
+}
+
+
+
+void PrintTreeTex (FILE *texfile, TreeElem_t *elem)
+{
+    if (texfile == nullptr || elem == nullptr) return;
+
+    fprintf (texfile, "$");
+    
+    if (TYPE == TYPE_OP) Print_tree_tex (texfile, elem);
+    else                 TreePrintVal   (texfile, elem);
+
+    fprintf (texfile, "$");
+}
+
+void Print_tree_tex (FILE *texfile, TreeElem_t *elem)
+{
+    if      (OP == OP_DIV) Print_frac_tex (texfile, elem);
+    else if (OP == OP_POW) Print_pow_tex  (texfile, elem);
+    else
+    {
+        if (!OneArgOp (OP))
+        {
+            if (LTYPE == TYPE_OP)
+                {
+                    if (OPRANK > LOPRANK) fprintf (texfile, " ( ");
+                    Print_tree_tex (texfile, L);
+                    if (OPRANK > LOPRANK) fprintf (texfile, " ) ");
+                }
+            else TreePrintVal (texfile, L);
+        }
+
+        PrintOpTex (texfile, OP);
+
+        if (RTYPE == TYPE_OP)
+        {
+            if (OPRANK > ROPRANK) fprintf (texfile, " ( ");
+            Print_tree_tex (texfile, R);
+            if (OPRANK > ROPRANK) fprintf (texfile, " ) ");
+        }
+        else TreePrintVal (texfile, R);
+    }
+}
+
+void Print_frac_tex (FILE *texfile, TreeElem_t *elem)
+{
+    fprintf (texfile, " \\frac{");
+
+    if (LTYPE == TYPE_OP) Print_tree_tex (texfile, L);
+    else                  TreePrintVal   (texfile, L);
+
+    fprintf (texfile, "}{");
+
+    if (RTYPE == TYPE_OP) Print_tree_tex (texfile, R);
+    else                  TreePrintVal   (texfile, R);
+
+    fprintf (texfile, "} ");
+}
+
+void Print_pow_tex (FILE *texfile, TreeElem_t *elem)
+{
+    if (LTYPE == TYPE_OP)
+    {
+        fprintf (texfile, " ( ");
+        Print_tree_tex (texfile, L);
+        fprintf (texfile, " ) ");
+    }
+    else TreePrintVal (texfile, L);
+
+    fprintf (texfile, "^{");
+
+    if (RTYPE == TYPE_OP) Print_tree_tex (texfile, R);
+    else                  TreePrintVal   (texfile, R);
+
+    fprintf (texfile, "} ");
+}
+
+void PrintOpTex (FILE *texfile, int op)
+{
+    switch (op)
+    {
+    case OP_ADD:
+        fprintf (texfile, " + ");
+        break;
+    case OP_SUB:
+        fprintf (texfile, " - ");
+        break;
+    case OP_MUL:
+        fprintf (texfile, " \\times ");
+        break;
+    case OP_LN:
+        fprintf (texfile, " \\ln ");
+        break;
+    case OP_SIN:
+        fprintf (texfile, " \\sin ");
+        break;
+    case OP_COS:
+        fprintf (texfile, " \\cos ");
+        break;
+    case OP_TAN:
+        fprintf (texfile, " \\tan ");
+        break;
+    default:
+        break;
+    }
+}
+
+int OneArgOp (int op)
+{
+    return op >= 6;
+}
 
 int GetOpRank (int op)
 {
-    if (op == )
+    if (op == OP_ADD || op == OP_SUB) return 1;
+    if (op == OP_MUL || op == OP_DIV) return 2;
+    if (op == OP_POW)                 return 3;
+    else                              return 4;
 }
-*/

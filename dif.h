@@ -8,18 +8,8 @@
 #include <string.h>
 #include <math.h>
 
-
 const char *const TEXFILENAME = "tex/texfile.tex";
-extern FILE *TEX;
-
-enum ARITHMERRORS
-{
-    ARITHM_OK            =  0,
-    ARITHM_DIV_BY_ZERO   =  1,
-    ARITHM_ROOT_OF_NEG   =  2,
-    ARITHM_LOG_OF_NEG    =  4,
-    ARITHM_UNKNOWN_OP    =  8,
-};
+const size_t BUFSIZE = 256;
 
 //DSL --------------------------------------------------------------------
 
@@ -46,13 +36,18 @@ enum ARITHMERRORS
 #define PL (P ->   left)
 #define PR (P ->  right)
 
+#define LLP (LL -> parent)
+#define LRP (LR -> parent)
+#define RLP (RL -> parent)
+#define RRP (RR -> parent)
+
 #define LIS0 (LTYPE == TYPE_NUM && LVAL == 0)
 #define RIS0 (RTYPE == TYPE_NUM && RVAL == 0)
 #define LIS1 (LTYPE == TYPE_NUM && LVAL == 1)
 #define RIS1 (RTYPE == TYPE_NUM && RVAL == 1)
 
-#define dL diff (L, var)
-#define dR diff (R, var)
+#define dL diff (L, var, texfile)
+#define dR diff (R, var, texfile)
 
 #define cL copy (L)
 #define cR copy (R)
@@ -67,6 +62,11 @@ enum ARITHMERRORS
 #define COS(node)        CreateOp (OP_COS, CreateNum (0), node)
 #define TAN(node)        CreateOp (OP_TAN ,CreateNum (0), node)
 
+#define EQUAL(node1, node2) CompareTrees (node1, node2)
+
+#define OPRANK  (GetOpRank (OP))
+#define LOPRANK (GetOpRank (L -> value.opval))
+#define ROPRANK (GetOpRank (R -> value.opval))
 // -----------------------------------------------------------------------
 
 int LoadTree (Tree_t *tree, const char *filename);
@@ -83,20 +83,21 @@ int SaveTree (Tree_t *tree, const char *filename);
 
 void Print_tree (FILE *file, TreeElem_t *elem);
 
-
 int Tree_get_size (TreeElem_t *elem);
 
-int GetDerivative (Tree_t *der_tree, Tree_t *func_tree, char var);
+void GeneratePdf (Tree_t *func_tree);
 
-TreeElem_t *diff (TreeElem_t *elem, char var);
+int GetDerivative (Tree_t *der_tree, Tree_t *func_tree, char var, FILE *texfile);
 
-TreeElem_t *diff_op (TreeElem_t *elem, char var);
+TreeElem_t *diff (TreeElem_t *elem, char var, FILE *texfile);
 
-TreeElem_t *diff_mul (TreeElem_t *elem, char var, int var_l, int var_r);
+TreeElem_t *diff_op (TreeElem_t *elem, char var, FILE *texfile);
 
-TreeElem_t *diff_div (TreeElem_t *elem, char var, int var_l, int var_r);
+TreeElem_t *diff_mul (TreeElem_t *elem, char var, int var_l, int var_r, FILE *texfile);
 
-TreeElem_t *diff_pow (TreeElem_t *elem, char var, int var_l, int var_r);
+TreeElem_t *diff_div (TreeElem_t *elem, char var, int var_l, int var_r, FILE *texfile);
+
+TreeElem_t *diff_pow (TreeElem_t *elem, char var, int var_l, int var_r, FILE *texfile);
 
 TreeElem_t *copy (TreeElem_t *elem);
 
@@ -106,22 +107,50 @@ TreeElem_t *CreateOp (int op, TreeElem_t *left, TreeElem_t *right);
 
 int FindVar (TreeElem_t *node, char var);
 
-TreeElem_t *Simplify (TreeElem_t *elem);
+TreeElem_t *Simplify (TreeElem_t *elem, FILE *texfile);
 
-int CalculateConsts (TreeElem_t *elem, int *size);
+TreeElem_t *CalculateConsts (TreeElem_t *elem, int *size);
 
-int Calculate (TreeElem_t *elem);
+TreeElem_t *Calculate (TreeElem_t *elem);
 
-int RemoveNeutrals (TreeElem_t *elem, int *size);
+TreeElem_t *RemoveNeutrals (TreeElem_t *elem, int *size);
 
-int Remove_neutrals (TreeElem_t *elem, int *size);
+TreeElem_t *Remove_neutrals (TreeElem_t *elem, int *size);
 
-void Replace_with_left (TreeElem_t *elem, int *size);
+TreeElem_t *Replace_with_left (TreeElem_t *elem, int *size);
 
-void Replace_with_right (TreeElem_t *elem, int *size);
+TreeElem_t *Replace_with_right (TreeElem_t *elem, int *size);
 
-void Replace_with_num (TreeElem_t *elem, int *size, double num);
+TreeElem_t *Replace_with_num (TreeElem_t *elem, int *size, double num);
 
+int CompareTrees (TreeElem_t *elem1, TreeElem_t *elem2);
 
+int OpCommutative (int op);
+
+void Print_tex_top (FILE *texfile);
+
+void Print_tex_bottom (FILE *texfile);
+
+void Print_before_diff (FILE *texfile, TreeElem_t *elem);
+
+void Print_after_diff (FILE *texfile, TreeElem_t *elem);
+
+void Print_before_simplify (FILE *texfile, TreeElem_t *elem);
+
+void Print_after_simplify (FILE *texfile, TreeElem_t *elem);
+
+void PrintTreeTex (FILE *texfile, TreeElem_t *elem);
+
+void Print_tree_tex (FILE *texfile, TreeElem_t *elem);
+
+void Print_frac_tex (FILE *texfile, TreeElem_t *elem);
+
+void Print_pow_tex (FILE *texfile, TreeElem_t *elem);
+
+void PrintOpTex (FILE *texfile, int op);
+
+int OneArgOp (int op);
+
+int GetOpRank (int op);
 
 #endif
