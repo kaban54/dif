@@ -89,13 +89,6 @@ int GeneratePdf (Tree_t *func_tree, double x0)
     fflush (LOG);
 
     SaveTree (&der_tree, "savetree.txt");
-
-    fprintf (texfile, "Таким образом, производная функции\n");
-    PrintTreeTex (texfile, elem);
-    fprintf (texfile, "равна\n");
-    PrintTreeTex (texfile, der_tree.data.left);
-
-    Print_img_tex (texfile, der_tree.data.left, "График производной");
     
     Tree_t slope_tree = {};
     TreeCtor (&slope_tree);
@@ -137,6 +130,8 @@ int GetDerivative (Tree_t *der_tree, Tree_t *func_tree, char var, FILE *texfile)
     PrintTreeTex (texfile, func_tree -> data.left);
     fprintf (texfile, "равна\n");
     PrintTreeTex (texfile,  der_tree -> data.left);
+
+    Print_img_tex (texfile, der_tree -> data.left, "График производной");
 
     TreeVerify (der_tree);
     return TREE_OK;
