@@ -131,22 +131,22 @@ int GetFuncname (char **s_ptr)
 
     if (strncmp (s, "sin", 3) == 0)
     {
-        s += 3;
+        s += 2;
         op = OP_SIN;
     }
     else if (strncmp (s, "cos", 3) == 0)
     {
-        s += 3;
+        s += 2;
         op = OP_COS;
     }
     else if (strncmp (s, "tan", 3) == 0)
     {
-        s += 3;
+        s += 2;
         op = OP_TAN;
     }
     else if (strncmp (s, "ln", 2) == 0)
     {
-        s += 2;
+        s += 1;
         op = OP_LN;
     }
     else return 0;
@@ -174,7 +174,7 @@ TreeElem_t *GetNum (char **s_ptr)
         printf ("Syntax Error: cannot get number or variable.\n");
         return nullptr;
     }
-    *s_ptr = StrSkipSpaces (s);
+    *s_ptr = StrSkipSpaces (s - 1);
     return NUM (val);
 }
 

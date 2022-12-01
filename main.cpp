@@ -11,10 +11,13 @@ int main()
     Tree_t func_tree = {};
     TreeCtor (&func_tree);
 
-    LoadTree (&func_tree, "testtree.txt");
-    TreeDump (&func_tree);
+    double x0 = 0;
 
-    GeneratePdf (&func_tree);
+    LoadTree (&func_tree, &x0, "testtree.txt");
+    TreeDump (&func_tree);
+    fflush (LOG);
+    
+    GeneratePdf (&func_tree, x0);
 
     TreeDtor (&func_tree);
     

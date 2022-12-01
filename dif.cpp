@@ -1,7 +1,7 @@
 #include "dif.h"
 
 
-int LoadTree (Tree_t *tree, const char *filename)
+int LoadTree (Tree_t *tree, double *x0, const char *filename)
 {
     TreeVerify (tree);
     if (filename == nullptr) TreeErr (tree, TREE_NULLPTR_ARG);
@@ -16,22 +16,12 @@ int LoadTree (Tree_t *tree, const char *filename)
 
     tree -> err |= ReadTree (tree, func_str);
 
+    fscanf (file, "%lf", x0);
+
     fclose (file);
     TreeVerify (tree);
     return TREE_OK;
 }
-
-int SkipSpaces (FILE *file)
-{
-    if (file == nullptr) return EOF;
-
-    int ch = fgetc (file);
-
-    while (isspace (ch)) ch = fgetc (file);
-
-    return ch;
-}
-
 
 int SaveTree (Tree_t *tree, const char *filename)
 {
@@ -73,7 +63,7 @@ int Tree_get_size (TreeElem_t *elem)
 }
 
 
-int GeneratePdf (Tree_t *func_tree)
+int GeneratePdf (Tree_t *func_tree, double x0)
 {
     TreeVerify (func_tree);
 
@@ -81,21 +71,41 @@ int GeneratePdf (Tree_t *func_tree)
     if (texfile == nullptr) return TREE_NULLPTR_ARG;
     Print_tex_top (texfile);
 
+    TreeElem_t *elem = func_tree -> data.left;
+
+    fprintf (texfile, "Рассмотрим функцию\n");
+    PrintTreeTex (texfile, elem);
+
+    elem = Simplify (elem, texfile);
+    func_tree -> size = Tree_get_size (elem);
+
+    Print_img_tex (texfile, elem, "График функции");
+
     Tree_t der_tree = {};
     TreeCtor (&der_tree);
 
-    func_tree -> data.left = Simplify (func_tree -> data.left, texfile);
-    func_tree -> size = Tree_get_size (func_tree -> data.left);
-
     GetDerivative (&der_tree, func_tree, 'x', texfile);
     TreeDump (&der_tree);
+    fflush (LOG);
 
     SaveTree (&der_tree, "savetree.txt");
+
+    fprintf (texfile, "Таким образом, производная функции\n");
+    PrintTreeTex (texfile, elem);
+    fprintf (texfile, "равна\n");
+    PrintTreeTex (texfile, der_tree.data.left);
+
+    Print_img_tex (texfile, der_tree.data.left, "График производной");
+    
+    Tree_t slope_tree = {};
+    TreeCtor (&slope_tree);
+    GetSlope (&slope_tree, func_tree, &der_tree, x0, texfile);
 
     Print_tex_bottom (texfile);
     fclose (texfile);
 
-    TreeDtor (& der_tree);
+    TreeDtor (&slope_tree);
+    TreeDtor (&der_tree);
 
     char cmd [BUFSIZE] = "";
     sprintf (cmd, "pdflatex -output-directory ./tex %s", TEXFILENAME);
@@ -112,11 +122,21 @@ int GetDerivative (Tree_t *der_tree, Tree_t *func_tree, char var, FILE *texfile)
     TreeVerify ( der_tree);
     TreeVerify (func_tree);
 
+    fprintf (texfile, "\\newpage\n");
+    fprintf (texfile, "\\begin{center}\n"
+                      "{\\large \\bf Нахождение производной.}\n"
+                      "\\end{center}\n");
+
     TreeElem_t *der = diff (func_tree -> data.left, var, texfile);
     der_tree -> size = Tree_get_size (der);
 
     der -> parent = &(der_tree -> data);
     der_tree -> data.left = der;
+
+    fprintf (texfile, "Таким образом, производная функции\n");
+    PrintTreeTex (texfile, func_tree -> data.left);
+    fprintf (texfile, "равна\n");
+    PrintTreeTex (texfile,  der_tree -> data.left);
 
     TreeVerify (der_tree);
     return TREE_OK;
@@ -185,6 +205,9 @@ TreeElem_t *diff_op (TreeElem_t *elem, char var, FILE *texfile)
 
     case OP_TAN:
         return DIV (dR, POW (COS (cR), NUM (2)));
+    
+    case OP_LN:
+        return DIV (dR, cR);
 
     default:
         return nullptr;
@@ -267,6 +290,15 @@ TreeElem_t *CreateOp (int op, TreeElem_t *left, TreeElem_t *right)
     return elem;
 }
 
+TreeElem_t *CreateVar (char var)
+{
+    TreeElem_t *node = TreeAllocElem ();
+    if (node == nullptr) return nullptr;
+
+    node -> type = TYPE_VAR;
+    node -> value.varval = var;
+    return node;
+}
 
 int FindVar (TreeElem_t *node, char var)
 {
@@ -289,6 +321,11 @@ TreeElem_t *Simplify (TreeElem_t *elem, FILE *texfile)
     elem = CalculateConsts (elem, &size);
     elem = RemoveNeutrals  (elem, &size);
 
+    if (size == old_size)
+    {
+        fprintf (texfile, "Очевидно, данное выражение не нуждается в упрощении.\\\\\n\\newline");
+        return elem;
+    }
     while (size < old_size)
     {
         old_size = size;
@@ -311,7 +348,7 @@ TreeElem_t *CalculateConsts (TreeElem_t *elem, int *size)
     if (LTYPE == TYPE_NUM && RTYPE == TYPE_NUM)
     {
         elem = Calculate (elem);
-        (*size) -= 2;
+        if (size) (*size) -= 2;
     }
     // Print to tex ?
     return elem;
@@ -513,7 +550,7 @@ TreeElem_t *Replace_with_right (TreeElem_t *elem, int *size)
         else            PR = R;
     }
 
-    TreeElem_t *ret = L;
+    TreeElem_t *ret = R;
     free (elem);
     *size -= 2;
     return ret;
@@ -559,12 +596,69 @@ int OpCommutative (int op)
 }
 
 
+int GetSlope (Tree_t *slope_tree, Tree_t *func_tree, Tree_t *der_tree, double x0, FILE *texfile)
+{
+    if (texfile == nullptr) return TREE_NULLPTR_ARG;
+    TreeVerify (slope_tree);
+    TreeVerify ( func_tree);
+    TreeVerify (  der_tree);
+
+    fprintf (texfile, "\\newpage\n");
+    fprintf (texfile, "\\begin{center}\n"
+                      "{\\large \\bf Построение касательной.}\n"
+                      "\\end{center}\n");
+    fprintf (texfile, "Зная производную функции, можем построить касательную в точке $$x_0 = %lf$$\n", x0);
+
+    double func_val = GetFuncVal (func_tree, x0);
+    double  der_val = GetFuncVal ( der_tree, x0);
+
+    slope_tree -> data.left = ADD (MUL (NUM (der_val), SUB (VAR ('x'), NUM (x0))), NUM (func_val));
+    slope_tree -> data.left -> parent = &(slope_tree -> data);
+
+    fprintf (texfile, "Уравнение касательной в точке $x_0$:\n");
+    PrintTreeTex (texfile, slope_tree -> data.left);
+
+    return TREE_OK;
+}
+
+double GetFuncVal (Tree_t *func_tree, double x0)
+{
+    TreeVerify (func_tree);
+    TreeElem_t *func_copy = copy (func_tree -> data.left);
+    func_copy = Replace_var_with_num (func_copy, 'x', x0);
+    func_copy = CalculateConsts (func_copy, NULL);
+
+    double ret = func_copy -> value.dblval;
+    free (func_copy);
+    return ret;
+}
+
+TreeElem_t *Replace_var_with_num (TreeElem_t *elem, char var, double num)
+{
+    if (TYPE == TYPE_OP)
+    {
+        Replace_var_with_num (L, var, num);
+        Replace_var_with_num (R, var, num);
+    }
+    else if (TYPE == TYPE_VAR && elem -> value.varval == var)
+    {
+        TYPE = TYPE_NUM;
+        VAL = num;
+    }
+    return elem;
+}
+
+
 void Print_tex_top (FILE *texfile)
 {
     fprintf (texfile, "\\documentclass[12pt,a4paper,fleqn]{article}\n"
                       "\\usepackage[utf8]{inputenc}\n"
-                      "\\usepackage[russian]{babel}\n");
-    fprintf (texfile, "\\begin{document}\nHEADER\\\\\\\\");
+                      "\\usepackage[russian]{babel}\n"
+                      "\\usepackage{graphicx}\n");
+    fprintf (texfile, "\\begin{document}\n"
+                      "\\begin{center}\n"
+                      "{\\Large \\bf Методы дифференцирования функций в математическом анализе.}\n"
+                      "\\end{center}\n");
 }
 
 void Print_tex_bottom (FILE *texfile)
@@ -576,28 +670,28 @@ void Print_tex_bottom (FILE *texfile)
 
 void Print_before_diff (FILE *texfile, TreeElem_t *elem)
 {
-    fprintf (texfile, "Before diff:\\\\\n");
+    fprintf (texfile, "Продифференцируем выражение\\\\\n");
     PrintTreeTex (texfile, elem);
     fprintf (texfile, "\\\\\n");
 }
 
 void Print_after_diff (FILE *texfile, TreeElem_t *elem)
 {
-    fprintf (texfile, "After diff:\\\\\n");
+    fprintf (texfile, "После дифференцирования получаем\\\\\n");
     PrintTreeTex (texfile, elem);
     fprintf (texfile, "\\\\\n");
 }
 
 void Print_before_simplify (FILE *texfile, TreeElem_t *elem)
 {
-    fprintf (texfile, "Before simplify:\\\\\n");
+    fprintf (texfile, "Упростим выражение\\\\\n");
     PrintTreeTex (texfile, elem);
     fprintf (texfile, "\\\\\n");
 }
 
 void Print_after_simplify (FILE *texfile, TreeElem_t *elem)
 {
-    fprintf (texfile, "After simplify:\\\\\n");
+    fprintf (texfile, "Получим\\\\\n");
     PrintTreeTex (texfile, elem);
     fprintf (texfile, "\\\\\n");
 }
@@ -720,4 +814,105 @@ int GetOpRank (int op)
     if (op == OP_MUL || op == OP_DIV) return 3;
     if (op == OP_POW)                 return 4;
     else                              return 5;
+}
+
+
+void Print_img_tex (FILE *texfile, TreeElem_t *elem, const char *caption)
+{
+    int imgnum = 0;
+    FILE *numfile = fopen ("tex/imgnum", "r");
+    if (numfile != nullptr)
+    {
+        fscanf (numfile, "%d", &imgnum);
+        fclose (numfile);
+        numfile = fopen ("tex/imgnum", "w");
+        fprintf (numfile, "%d", imgnum + 1);
+        fclose (numfile);
+    }
+    GeneratePlotImg (elem, imgnum);
+
+    fprintf (texfile, "\\begin{figure}[h]\n"
+                      "\\centering\n"
+                      "\\includegraphics[width=0.8\\linewidth]{images/plotimg%d.png}\n"
+                      "\\caption{%s}\n"
+                      "\\end{figure}\n", imgnum, caption);
+    fprintf (texfile, "\\newline\n");
+}
+
+void GeneratePlotImg (TreeElem_t *elem, int imgnum)
+{
+    FILE *plotfile = fopen (PLOTFILENAME, "w");
+    if (plotfile == nullptr) return;
+
+    fprintf (plotfile, "reset\n"
+                       "set terminal png size %d, %d\n"
+                       "set output \"tex/images/plotimg%d.png\"\n"
+                       "set grid\n"
+                       "plot ", PLOTIMGW, PLOTIMGH, imgnum);
+    Print_gnuplot_exp (plotfile, elem);
+    fprintf (plotfile, " title \"\"");
+
+    fclose (plotfile);
+
+    char cmd [BUFSIZE] = "";
+    sprintf (cmd, "gnuplot %s", PLOTFILENAME);
+    system (cmd);    
+}
+
+void Print_gnuplot_exp (FILE *plotfile, TreeElem_t *elem)
+{
+    fprintf (plotfile, "(");
+    if (TYPE == TYPE_OP)
+    {
+        if (!OneArgOp (OP)) Print_gnuplot_exp (plotfile, L);
+        Print_gnuplot_op  (plotfile, OP);
+        Print_gnuplot_exp (plotfile, R );
+    }
+    else TreePrintVal (plotfile, elem);
+    fprintf (plotfile, ")");
+}
+
+void Print_gnuplot_op  (FILE *plotfile, int op)
+{
+    switch (op)
+    {
+    case OP_ADD:
+        fprintf (plotfile, "+");
+        break;
+            
+    case OP_SUB:
+        fprintf (plotfile, "-");
+        break;
+            
+    case OP_MUL:
+        fprintf (plotfile, "*");
+        break;
+            
+    case OP_DIV:
+        fprintf (plotfile, "/");
+        break;
+        
+    case OP_POW:
+        fprintf (plotfile, "**");
+        break;
+        
+    case OP_LN:
+        fprintf (plotfile, "log");
+        break;
+        
+    case OP_SIN:
+        fprintf (plotfile, "sin");
+        break;
+        
+    case OP_COS:
+        fprintf (plotfile, "cos");
+        break;
+        
+    case OP_TAN:
+        fprintf (plotfile, "tan");
+        break;
+
+    default:
+        break;
+    }
 }
