@@ -4,8 +4,8 @@ CC = g++
 all: dif
 
 
-dif: main.o tree.o treedump.o dif.o
-	$(CC) -o dif.exe obj/main.o obj/tree.o obj/treedump.o obj/dif.o $(CFLAGS)
+dif: main.o tree.o treedump.o dif.o treeread.o
+	$(CC) -o dif.exe obj/main.o obj/tree.o obj/treedump.o obj/dif.o obj/treeread.o $(CFLAGS)
 
 main.o: main.cpp
 	$(CC) -o obj/main.o main.cpp -c $(CFLAGS)
@@ -18,6 +18,9 @@ treedump.o: tree/treedump.cpp
 
 dif.o: dif.cpp 
 	$(CC) -o obj/dif.o dif.cpp -c $(CFLAGS)
+
+treeread.o: treeread.cpp 
+	$(CC) -o obj/treeread.o treeread.cpp -c $(CFLAGS)
 
 clean:
 	rm *.o

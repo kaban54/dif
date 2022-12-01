@@ -61,7 +61,8 @@ void TreePrintVal (FILE *stream, TreeElem_t *elem)
         break;
     }
     case TYPE_NUM:
-        fprintf (stream, "%lf", elem -> value.dblval);
+        if (elem -> value.dblval == (int) (elem -> value.dblval)) fprintf (stream, "%d", (int) (elem -> value.dblval));
+        else                                                      fprintf (stream, "%lf",       elem -> value.dblval );
         break;
 
     case TYPE_VAR:

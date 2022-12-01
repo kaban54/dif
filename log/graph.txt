@@ -1,0 +1,11 @@
+digraph {
+ rankdir = TB;
+node [shape = record, fontsize = 12, style = "rounded, filled", fillcolor = lightblue];
+graph [splines = true];
+r0 [style = invis];
+elem000000c20b5ffb80 [label = "{type = 0|value = unknown type (0)|{{adress|parent|left|right}|{000000c20b5ffb80|0000000000000000|000002aa50e71b30|0000000000000000}}}", color = red, fillcolor = white];
+{rank = same; "r0"; "elem000000c20b5ffb80"}elem000000c20b5ffb80 -> elem000002aa50e71b30 [color = green, weight = 1];
+r1 [style = invis];
+elem000002aa50e71b30 [label = "{type = 2|value = 1|{{adress|parent|left|right}|{000002aa50e71b30|000000c20b5ffb80|0000000000000000|0000000000000000}}}"];
+{rank = same; "r1"; "elem000002aa50e71b30"}elem000002aa50e71b30 -> elem000000c20b5ffb80 [color = black, weight = 1];
+}

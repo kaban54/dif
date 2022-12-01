@@ -8,60 +8,16 @@ int LoadTree (Tree_t *tree, const char *filename)
 
     if (tree -> data.left || tree -> data.right) TreeErr (tree, TREE_INCORRECT_POSITION);
 
-    TreeAddLeft (tree, &(tree -> data), TreeAllocElem());
-    if (tree -> data.left == nullptr) TreeErr (tree, TREE_ALLOC_ERROR);
-
     FILE *file = fopen (filename, "r");
     if (file == nullptr) TreeErr (tree, TREE_NULLPTR_ARG);
+    
+    char func_str [BUFSIZE] = "";
+    fgets (func_str, BUFSIZE - 1, file);
 
-    tree -> size = 0;
-    Read_tree (file, tree -> data.left, &(tree -> size));
+    tree -> err |= ReadTree (tree, func_str);
 
     fclose (file);
     TreeVerify (tree);
-    return TREE_OK;
-}
-
-int Read_tree (FILE *file, TreeElem_t *elem, int *size)
-{
-    int ch = SkipSpaces (file);
-    if (ch != '(') return TREE_INCORRECT_FORMAT;
-
-    *size += 1;
-
-    ch = SkipSpaces (file);
-    ungetc (ch, file);
-
-    int err = TREE_OK;
-
-    if (ch == '(')
-    {
-        L = TreeAllocElem ();
-        R = TreeAllocElem ();
-        if (L == nullptr) return TREE_ALLOC_ERROR;
-        if (R == nullptr) return TREE_ALLOC_ERROR;
-        
-        L -> parent = elem;
-        R -> parent = elem;
-
-        err |= Read_tree (file, L, size);
-        if (err) return err;
-
-        err |= Read_op (file, elem);
-        if (err) return err;
-
-        err |= Read_tree (file, R, size);
-        if (err) return err;
-    }
-    else
-    {
-        err |= Read_value (file, elem);
-        if (err) return err;
-    }
-
-    ch = SkipSpaces (file);
-    if (ch != ')') return TREE_INCORRECT_FORMAT;
-
     return TREE_OK;
 }
 
@@ -74,71 +30,6 @@ int SkipSpaces (FILE *file)
     while (isspace (ch)) ch = fgetc (file);
 
     return ch;
-}
-
-int Read_op (FILE *file, TreeElem_t *elem)
-{
-    int ch = SkipSpaces (file);
-
-    switch (ch)
-    {
-    case '+':
-        OP = OP_ADD;
-        break;
-
-    case '-':
-        OP = OP_SUB;
-        break;
-
-    case '*':
-        OP = OP_MUL;
-        break;
-
-    case '/':
-        OP = OP_DIV;
-        break;
-    
-    case '^':
-        OP = OP_POW;
-        break;
-    
-    case 'l':
-        OP = OP_LN;
-        break;
-    
-    case 's':
-        OP = OP_SIN;
-        break;
-
-    case 'c':
-        OP = OP_COS;
-        break;
-
-    default:
-        return TREE_INCORRECT_FORMAT;
-    }
-    TYPE = TYPE_OP;
-    return TREE_OK;
-}
-
-int Read_value (FILE *file, TreeElem_t *elem)
-{
-    int ch = SkipSpaces (file);
-
-    if (isdigit (ch))
-    {
-        ungetc (ch, file);
-        fscanf (file, "%lf", &(VAL));
-        TYPE = TYPE_NUM;
-    }
-    else if (isalpha (ch))
-    {
-        elem -> value.varval = (char) ch;
-        TYPE = TYPE_VAR;
-    }
-    else return TREE_INCORRECT_FORMAT;
-
-    return TREE_OK;
 }
 
 
@@ -182,10 +73,12 @@ int Tree_get_size (TreeElem_t *elem)
 }
 
 
-void GeneratePdf (Tree_t *func_tree)
+int GeneratePdf (Tree_t *func_tree)
 {
+    TreeVerify (func_tree);
+
     FILE *texfile = fopen (TEXFILENAME, "w");
-    if (texfile == nullptr) return;
+    if (texfile == nullptr) return TREE_NULLPTR_ARG;
     Print_tex_top (texfile);
 
     Tree_t der_tree = {};
@@ -207,6 +100,9 @@ void GeneratePdf (Tree_t *func_tree)
     char cmd [BUFSIZE] = "";
     sprintf (cmd, "pdflatex -output-directory ./tex %s", TEXFILENAME);
     system (cmd);
+
+    TreeVerify (func_tree);
+    return TREE_OK;
 }
 
 
@@ -363,7 +259,7 @@ TreeElem_t *CreateOp (int op, TreeElem_t *left, TreeElem_t *right)
     TYPE = TYPE_OP;
     OP = op;
     L  = left;
-    R = right;
+    R  = right;
 
     LP = elem;
     RP = elem;
@@ -506,7 +402,6 @@ TreeElem_t *RemoveNeutrals (TreeElem_t *elem, int *size)
 
     elem = Remove_neutrals (elem, size);
 
-    // Print to tex ?
     return elem;
 }
 
@@ -681,7 +576,7 @@ void Print_tex_bottom (FILE *texfile)
 
 void Print_before_diff (FILE *texfile, TreeElem_t *elem)
 {
-    fprintf (texfile, "Я РУССКИЙ!!! Before diff:\\\\\n");
+    fprintf (texfile, "Before diff:\\\\\n");
     PrintTreeTex (texfile, elem);
     fprintf (texfile, "\\\\\n");
 }
@@ -713,12 +608,12 @@ void PrintTreeTex (FILE *texfile, TreeElem_t *elem)
 {
     if (texfile == nullptr || elem == nullptr) return;
 
-    fprintf (texfile, "$");
+    fprintf (texfile, "$$");
     
     if (TYPE == TYPE_OP) Print_tree_tex (texfile, elem);
     else                 TreePrintVal   (texfile, elem);
 
-    fprintf (texfile, "$");
+    fprintf (texfile, "$$");
 }
 
 void Print_tree_tex (FILE *texfile, TreeElem_t *elem)
@@ -794,7 +689,7 @@ void PrintOpTex (FILE *texfile, int op)
         fprintf (texfile, " - ");
         break;
     case OP_MUL:
-        fprintf (texfile, " \\times ");
+        fprintf (texfile, " \\cdot ");
         break;
     case OP_LN:
         fprintf (texfile, " \\ln ");
@@ -820,8 +715,9 @@ int OneArgOp (int op)
 
 int GetOpRank (int op)
 {
-    if (op == OP_ADD || op == OP_SUB) return 1;
-    if (op == OP_MUL || op == OP_DIV) return 2;
-    if (op == OP_POW)                 return 3;
-    else                              return 4;
+    if (op == OP_ADD)                 return 1;
+    if (op == OP_SUB)                 return 2;
+    if (op == OP_MUL || op == OP_DIV) return 3;
+    if (op == OP_POW)                 return 4;
+    else                              return 5;
 }

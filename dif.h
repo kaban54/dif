@@ -71,13 +71,28 @@ const size_t BUFSIZE = 256;
 
 int LoadTree (Tree_t *tree, const char *filename);
 
-int Read_tree (FILE *file, TreeElem_t *elem, int *size);
+int ReadTree (Tree_t *tree, char *input_str);
 
-int SkipSpaces (FILE *file);
+TreeElem_t *GetG (char **s_ptr);
 
-int Read_op (FILE *file, TreeElem_t *elem);
+TreeElem_t *GetExp (char **s_ptr);
 
-int Read_value (FILE *file, TreeElem_t *elem);
+TreeElem_t *GetTerm (char **s_ptr);
+
+TreeElem_t *GetPow (char **s_ptr);
+
+TreeElem_t *GetBrack (char **s_ptr);
+
+TreeElem_t *GetFunc (char **s_ptr);
+
+int GetFuncname (char **s_ptr);
+
+TreeElem_t *GetNum (char **s_ptr);
+
+TreeElem_t *GetVar (char **s_ptr);
+
+char *StrSkipSpaces (char *str);
+
 
 int SaveTree (Tree_t *tree, const char *filename);
 
@@ -85,7 +100,7 @@ void Print_tree (FILE *file, TreeElem_t *elem);
 
 int Tree_get_size (TreeElem_t *elem);
 
-void GeneratePdf (Tree_t *func_tree);
+int GeneratePdf (Tree_t *func_tree);
 
 int GetDerivative (Tree_t *der_tree, Tree_t *func_tree, char var, FILE *texfile);
 

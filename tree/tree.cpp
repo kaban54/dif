@@ -63,10 +63,13 @@ int TreeFreeData (Tree_t *tree, TreeElem_t *elem)
 
 int Tree_free_data (TreeElem_t *elem, int *size)
 {
+    if (elem == nullptr) return TREE_OK;
+
     if (elem ->  left) Tree_free_data (elem ->  left, size);
     if (elem -> right) Tree_free_data (elem -> right, size);
 
-    *size -= 1;
+    free (elem);
+    if (size) *size -= 1;
 
     return TREE_OK;
 }
