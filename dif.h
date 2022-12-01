@@ -189,9 +189,9 @@ int OneArgOp (int op);
 int GetOpRank (int op);
 
 
-void Print_img_tex (FILE *texfile, TreeElem_t *elem, const char *caption);
+void Print_img_tex (FILE *texfile, int number_of_funcs, TreeElem_t **funcs, const char *caption);
 
-void GeneratePlotImg (TreeElem_t *elem, int imgnum);
+void GeneratePlotImg (int number_of_funcs, TreeElem_t **funcs, int imgnum);
 
 void Print_gnuplot_exp (FILE *plotfile, TreeElem_t *elem);
 

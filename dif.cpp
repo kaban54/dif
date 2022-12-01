@@ -79,7 +79,7 @@ int GeneratePdf (Tree_t *func_tree, double x0)
     elem = Simplify (elem, texfile);
     func_tree -> size = Tree_get_size (elem);
 
-    Print_img_tex (texfile, elem, "График функции");
+    Print_img_tex (texfile, 1, &elem, "График функции");
 
     Tree_t der_tree = {};
     TreeCtor (&der_tree);
@@ -93,6 +93,9 @@ int GeneratePdf (Tree_t *func_tree, double x0)
     Tree_t slope_tree = {};
     TreeCtor (&slope_tree);
     GetSlope (&slope_tree, func_tree, &der_tree, x0, texfile);
+
+    TreeDump (&slope_tree);
+    fflush (LOG);
 
     Print_tex_bottom (texfile);
     fclose (texfile);
@@ -131,7 +134,7 @@ int GetDerivative (Tree_t *der_tree, Tree_t *func_tree, char var, FILE *texfile)
     fprintf (texfile, "равна\n");
     PrintTreeTex (texfile,  der_tree -> data.left);
 
-    Print_img_tex (texfile, der_tree -> data.left, "График производной");
+    Print_img_tex (texfile, 1, &(der_tree -> data.left), "График производной");
 
     TreeVerify (der_tree);
     return TREE_OK;
@@ -609,9 +612,13 @@ int GetSlope (Tree_t *slope_tree, Tree_t *func_tree, Tree_t *der_tree, double x0
 
     slope_tree -> data.left = ADD (MUL (NUM (der_val), SUB (VAR ('x'), NUM (x0))), NUM (func_val));
     slope_tree -> data.left -> parent = &(slope_tree -> data);
+    slope_tree -> size = Tree_get_size (slope_tree -> data.left);
 
     fprintf (texfile, "Уравнение касательной в точке $x_0$:\n");
     PrintTreeTex (texfile, slope_tree -> data.left);
+
+    TreeElem_t *funcs [2] = {func_tree -> data.left, slope_tree -> data.left};
+    Print_img_tex (texfile, 2, funcs, "График касательной");
 
     return TREE_OK;
 }
@@ -812,7 +819,7 @@ int GetOpRank (int op)
 }
 
 
-void Print_img_tex (FILE *texfile, TreeElem_t *elem, const char *caption)
+void Print_img_tex (FILE *texfile, int number_of_funcs, TreeElem_t **funcs, const char *caption)
 {
     int imgnum = 0;
     FILE *numfile = fopen ("tex/imgnum", "r");
@@ -824,7 +831,7 @@ void Print_img_tex (FILE *texfile, TreeElem_t *elem, const char *caption)
         fprintf (numfile, "%d", imgnum + 1);
         fclose (numfile);
     }
-    GeneratePlotImg (elem, imgnum);
+    GeneratePlotImg (number_of_funcs, funcs, imgnum);
 
     fprintf (texfile, "\\begin{figure}[h]\n"
                       "\\centering\n"
@@ -834,7 +841,7 @@ void Print_img_tex (FILE *texfile, TreeElem_t *elem, const char *caption)
     fprintf (texfile, "\\newline\n");
 }
 
-void GeneratePlotImg (TreeElem_t *elem, int imgnum)
+void GeneratePlotImg (int number_of_funcs, TreeElem_t **funcs, int imgnum)
 {
     FILE *plotfile = fopen (PLOTFILENAME, "w");
     if (plotfile == nullptr) return;
@@ -842,10 +849,16 @@ void GeneratePlotImg (TreeElem_t *elem, int imgnum)
     fprintf (plotfile, "reset\n"
                        "set terminal png size %d, %d\n"
                        "set output \"tex/images/plotimg%d.png\"\n"
-                       "set grid\n"
-                       "plot ", PLOTIMGW, PLOTIMGH, imgnum);
-    Print_gnuplot_exp (plotfile, elem);
-    fprintf (plotfile, " title \"\"");
+                       "set grid\n", PLOTIMGW, PLOTIMGH, imgnum);
+    fprintf (plotfile, "plot ");
+    
+    for (int index = 0; index < number_of_funcs; index++)
+    {
+        Print_gnuplot_exp (plotfile, funcs [index]);
+        fprintf (plotfile, " title \"\"");
+        if (index != number_of_funcs - 1) fprintf (plotfile, ", ");
+        else                              fprintf (plotfile, "\n");
+    }
 
     fclose (plotfile);
 
