@@ -1,5 +1,5 @@
 reset
 set terminal png size 1600, 1200
-set output "tex/images/plotimg138.png"
+set output "tex/images/plotimg168.png"
 set grid
-plot ((x)**(2)) title "", (((2)*((x)-(1)))+(1)) title ""
+plot (log(x)) title "", (((1)*((x)-(1)))+(0)) title ""

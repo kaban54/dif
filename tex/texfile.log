@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.7) (preloaded format=pdflatex 2022.9.2)  2 DEC 2022 02:26
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.7) (preloaded format=pdflatex 2022.9.2)  2 DEC 2022 03:03
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -373,10 +373,10 @@ Underfull \hbox (badness 10000) in paragraph at lines 10--11
 
  []
 
-<images/plotimg136.png, id=1, 1204.5pt x 903.375pt>
-File: images/plotimg136.png Graphic file (type png)
-<use images/plotimg136.png>
-Package pdftex.def Info: images/plotimg136.png  used on input line 15.
+<images/plotimg166.png, id=1, 1204.5pt x 903.375pt>
+File: images/plotimg166.png Graphic file (type png)
+<use images/plotimg166.png>
+Package pdftex.def Info: images/plotimg166.png  used on input line 15.
 (pdftex.def)             Requested size: 312.00119pt x 234.00354pt.
 
 Underfull \hbox (badness 10000) in paragraph at lines 11--19
@@ -391,7 +391,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 11--19
 [1
 
 {C:/Users/arsti/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map} <C:/Users/ars
-ti/Documents/GitHub/dif/tex/images/plotimg136.png>]
+ti/Documents/GitHub/dif/tex/images/plotimg166.png>]
 Underfull \hbox (badness 10000) in paragraph at lines 23--24
 
  []
@@ -427,17 +427,17 @@ Underfull \hbox (badness 10000) in paragraph at lines 33--35
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 35--37
+Underfull \hbox (badness 10000) in paragraph at lines 35--38
 
  []
 
-<images/plotimg137.png, id=11, 1204.5pt x 903.375pt>
-File: images/plotimg137.png Graphic file (type png)
-<use images/plotimg137.png>
-Package pdftex.def Info: images/plotimg137.png  used on input line 42.
+<images/plotimg167.png, id=11, 1204.5pt x 903.375pt>
+File: images/plotimg167.png Graphic file (type png)
+<use images/plotimg167.png>
+Package pdftex.def Info: images/plotimg167.png  used on input line 41.
 (pdftex.def)             Requested size: 312.00119pt x 234.00354pt.
 
-Underfull \hbox (badness 10000) in paragraph at lines 40--46
+Underfull \hbox (badness 10000) in paragraph at lines 39--45
 
  []
 
@@ -445,21 +445,21 @@ Underfull \hbox (badness 10000) in paragraph at lines 40--46
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 [2]
-<images/plotimg138.png, id=19, 1204.5pt x 903.375pt>
-File: images/plotimg138.png Graphic file (type png)
-<use images/plotimg138.png>
-Package pdftex.def Info: images/plotimg138.png  used on input line 54.
+<images/plotimg168.png, id=16, 1204.5pt x 903.375pt>
+File: images/plotimg168.png Graphic file (type png)
+<use images/plotimg168.png>
+Package pdftex.def Info: images/plotimg168.png  used on input line 55.
 (pdftex.def)             Requested size: 312.00119pt x 234.00354pt.
 
-Underfull \hbox (badness 10000) in paragraph at lines 52--58
+Underfull \hbox (badness 10000) in paragraph at lines 53--59
 
  []
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-[3 <C:/Users/arsti/Documents/GitHub/dif/tex/images/plotimg137.png>] [4 <C:/User
-s/arsti/Documents/GitHub/dif/tex/images/plotimg138.png>]
+[3 <C:/Users/arsti/Documents/GitHub/dif/tex/images/plotimg167.png>] [4 <C:/User
+s/arsti/Documents/GitHub/dif/tex/images/plotimg168.png>]
 (C:\Users\arsti\Documents\GitHub\dif\tex\texfile.aux) ) 
 Here is how much of TeX's memory you used:
  3002 strings out of 478338
@@ -477,12 +477,11 @@ sti/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi12.pfb><C:
 /Users/arsti/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr12
 .pfb><C:/Users/arsti/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/
 cm/cmr8.pfb><C:/Users/arsti/AppData/Local/Programs/MiKTeX/fonts/type1/public/am
-sfonts/cm/cmsy10.pfb><C:/Users/arsti/AppData/Local/Programs/MiKTeX/fonts/type1/
-public/amsfonts/cm/cmsy8.pfb>
+sfonts/cm/cmsy10.pfb>
 Output written on C:\Users\arsti\Documents\GitHub\dif\tex\texfile.pdf (4 pages,
- 114560 bytes).
+ 102890 bytes).
 PDF statistics:
- 143 PDF objects out of 1000 (max. 8388607)
+ 139 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  16 words of extra memory for PDF output out of 10000 (max. 10000000)
 

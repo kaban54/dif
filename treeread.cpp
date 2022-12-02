@@ -158,22 +158,20 @@ int GetFuncname (char **s_ptr)
 
 TreeElem_t *GetNum (char **s_ptr)
 {
-    int val = 0;
-
     char *s = *s_ptr;
-    char *old_s = s;
 
-    while ('0' <= *s && *s <= '9')
-    {
-        val = val * 10 + *s - '0';
-        s++;
-    }
-
-    if (s == old_s)
+    if (!('0' <= *s && *s <= '9'))
     {
         printf ("Syntax Error: cannot get number or variable.\n");
         return nullptr;
     }
+
+    double val = 0;
+    int symbs_read = 0;
+
+    sscanf (s, "%lf%n", &val, &symbs_read);
+    s += symbs_read;
+    
     *s_ptr = StrSkipSpaces (s - 1);
     return NUM (val);
 }

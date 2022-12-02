@@ -75,25 +75,19 @@ int GeneratePdf (Tree_t *func_tree, double x0)
 
     fprintf (texfile, "Рассмотрим функцию\n");
     PrintTreeTex (texfile, elem);
-
     elem = Simplify (elem, texfile);
     func_tree -> size = Tree_get_size (elem);
-
     Print_img_tex (texfile, 1, &elem, "График функции");
 
     Tree_t der_tree = {};
     TreeCtor (&der_tree);
-
     GetDerivative (&der_tree, func_tree, 'x', texfile);
     TreeDump (&der_tree);
     fflush (LOG);
-
-    SaveTree (&der_tree, "savetree.txt");
     
     Tree_t slope_tree = {};
     TreeCtor (&slope_tree);
     GetSlope (&slope_tree, func_tree, &der_tree, x0, texfile);
-
     TreeDump (&slope_tree);
     fflush (LOG);
 
@@ -605,7 +599,10 @@ int GetSlope (Tree_t *slope_tree, Tree_t *func_tree, Tree_t *der_tree, double x0
     fprintf (texfile, "\\begin{center}\n"
                       "{\\large \\bf Построение касательной.}\n"
                       "\\end{center}\n");
-    fprintf (texfile, "Зная производную функции, можем построить касательную в точке $$x_0 = %lf$$\n", x0);
+    fprintf (texfile, "Зная производную функции, можем построить касательную в точке"); 
+    
+    if ((int) x0 == x0) fprintf (texfile, "$$x_0 = %d $$\n", (int) x0);
+    else                fprintf (texfile, "$$x_0 = %lf$$\n",       x0);
 
     double func_val = GetFuncVal (func_tree, x0);
     double  der_val = GetFuncVal ( der_tree, x0);
@@ -613,6 +610,13 @@ int GetSlope (Tree_t *slope_tree, Tree_t *func_tree, Tree_t *der_tree, double x0
     slope_tree -> data.left = ADD (MUL (NUM (der_val), SUB (VAR ('x'), NUM (x0))), NUM (func_val));
     slope_tree -> data.left -> parent = &(slope_tree -> data);
     slope_tree -> size = Tree_get_size (slope_tree -> data.left);
+
+    fprintf (texfile, "Значение функции в точке $x_0$ равно ");
+    if ((int) func_val == func_val) fprintf (texfile, "$%d $;\\\\\n", (int) func_val);
+    else                            fprintf (texfile, "$%lf$;\\\\\n",       func_val);
+    fprintf (texfile, "Значение производной в точке $x_0$ равно ");
+    if ((int) der_val == der_val)   fprintf (texfile, "$%d $;\\\\\n", (int)  der_val);
+    else                            fprintf (texfile, "$%lf$;\\\\\n",        der_val);
 
     fprintf (texfile, "Уравнение касательной в точке $x_0$:\n");
     PrintTreeTex (texfile, slope_tree -> data.left);
