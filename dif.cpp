@@ -676,7 +676,10 @@ int GetTaylor (Tree_t *taylor_tree, Tree_t *func_tree, Tree_t *der_tree, int max
                       "\\end{center}\n");
 
     double func_val = GetFuncVal (func_tree -> data.left, 0);
-    fprintf (texfile, "Значение функции при $x = 0$ равно $%lf$.\n", func_val);
+
+    fprintf (texfile, "Значение функции при $x = 0$ равно ");
+    if (func_val == (int) func_val) fprintf (texfile,  "$%d$.\\\\\n", (int) func_val);
+    else                            fprintf (texfile, "$%lf$.\\\\\n",       func_val);
 
     TreeElem_t *buf  = nullptr;
     TreeElem_t *der  = der_tree -> data.left;
@@ -684,8 +687,11 @@ int GetTaylor (Tree_t *taylor_tree, Tree_t *func_tree, Tree_t *der_tree, int max
     fprintf (texfile, "1-я производная функции равна");
     PrintTreeTex (texfile, der);
     double der_val = GetFuncVal (der, 0);
-    fprintf (texfile, "Значение 1-й производной при $x = 0$ равно $%lf$.\n", der_val);
 
+    fprintf (texfile, "Значение 1-й производной при $x = 0$ равно ");
+    if (der_val == (int) der_val) fprintf (texfile,  "$%d$.\\\\\n", (int) der_val);
+    else                          fprintf (texfile, "$%lf$.\\\\\n",       der_val);
+    
     TreeElem_t *elem = ADD (NUM (func_val), MUL (NUM (der_val), VAR ('x')));
 
     for (int pow = 2; pow <= max_pow; pow++)
@@ -698,7 +704,10 @@ int GetTaylor (Tree_t *taylor_tree, Tree_t *func_tree, Tree_t *der_tree, int max
         fprintf (texfile, "%d-я производная функции равна", pow);
         PrintTreeTex (texfile, der);
         der_val = GetFuncVal (der, 0);
-        fprintf (texfile, "Значение %d-й производной при $x = 0$ равно $%lf$.\n", pow, der_val);
+
+        fprintf (texfile, "Значение %d-й производной при $x = 0$ равно ", pow);
+        if (der_val == (int) der_val) fprintf (texfile,  "$%d$.\\\\\n", (int) der_val);
+        else                          fprintf (texfile, "$%lf$.\\\\\n",       der_val);
 
         elem = ADD (elem, MUL (DIV (NUM (der_val), NUM ((double) Fact (pow))), POW (VAR ('x'), NUM (pow))));
     }

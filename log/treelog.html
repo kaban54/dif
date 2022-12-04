@@ -2,45 +2,45 @@
 <pre>
 
 Tree dump from (int main()) at (main.cpp) at line (18):
-tree [000000f3cdfff8a0] "&func_tree" at (int main()) at (main.cpp)(12):
+tree [000000e6bd1ffd20] "&func_tree" at (int main()) at (main.cpp)(12):
 {
 	status   = 1
 	error    = 0
-	size     = 11
+	size     = 3
 
-	(((0)sin((3)*(x)))-(((0)cos(x))^(2)))
+	((2)^(x))
 }
-<img src="./images/dumpimg680.png", width="80%"><pre>
+<img src="./images/dumpimg700.png", width="80%"><pre>
 
 Tree dump from (int GeneratePdf(Tree_t*, double, int)) at (dif.cpp) at line (86):
-tree [000000f3cdfff7c0] "&der_tree" at (int GeneratePdf(Tree_t*, double, int)) at (dif.cpp)(84):
+tree [000000e6bd1ffc40] "&der_tree" at (int GeneratePdf(Tree_t*, double, int)) at (dif.cpp)(84):
 {
 	status   = 1
 	error    = 0
-	size     = 19
+	size     = 5
 
-	((((0)cos((3)*(x)))*(3))-((2)*(((0)cos(x))*((-1)*((0)sin(x))))))
+	((0.693147)*((2)^(x)))
 }
-<img src="./images/dumpimg681.png", width="80%"><pre>
+<img src="./images/dumpimg701.png", width="80%"><pre>
 
 Tree dump from (int GeneratePdf(Tree_t*, double, int)) at (dif.cpp) at line (92):
-tree [000000f3cdfff760] "&slope_tree" at (int GeneratePdf(Tree_t*, double, int)) at (dif.cpp)(90):
+tree [000000e6bd1ffbe0] "&slope_tree" at (int GeneratePdf(Tree_t*, double, int)) at (dif.cpp)(90):
 {
 	status   = 1
 	error    = 0
 	size     = 7
 
-	(((-2.060680)*((x)-(1)))+(-0.150807))
+	(((1.386294)*((x)-(1)))+(2))
 }
-<img src="./images/dumpimg682.png", width="80%"><pre>
+<img src="./images/dumpimg702.png", width="80%"><pre>
 
 Tree dump from (int GeneratePdf(Tree_t*, double, int)) at (dif.cpp) at line (98):
-tree [000000f3cdfff700] "&taylor_tree" at (int GeneratePdf(Tree_t*, double, int)) at (dif.cpp)(96):
+tree [000000e6bd1ffb80] "&taylor_tree" at (int GeneratePdf(Tree_t*, double, int)) at (dif.cpp)(96):
 {
 	status   = 1
 	error    = 0
-	size     = 27
+	size     = 17
 
-	((((((-1)+((3)*(x)))+((x)^(2)))+((-4.500000)*((x)^(3))))+((-0.333333)*((x)^(4))))+((2.025000)*((x)^(5))))
+	((((1)+((0.693147)*(x)))+((0.240227)*((x)^(2))))+((0.055504)*((x)^(3))))
 }
-<img src="./images/dumpimg683.png", width="80%">
+<img src="./images/dumpimg703.png", width="80%">
