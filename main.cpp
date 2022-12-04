@@ -12,12 +12,13 @@ int main()
     TreeCtor (&func_tree);
 
     double x0 = 0;
+    int taylor_pow = 0;
 
-    LoadTree (&func_tree, &x0, "testtree.txt");
+    LoadTree (&func_tree, &x0, &taylor_pow, "testtree.txt");
     TreeDump (&func_tree);
     fflush (LOG);
-    
-    GeneratePdf (&func_tree, x0);
+
+    GeneratePdf (&func_tree, x0, taylor_pow);
 
     TreeDtor (&func_tree);
     

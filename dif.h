@@ -16,6 +16,8 @@ const int PLOTIMGH = 1200;
 
 const size_t BUFSIZE = 256;
 
+const int MAX_TAYLOR_POW = 12;
+
 //DSL --------------------------------------------------------------------
 
 #define NUM(x) CreateNum (x)
@@ -75,7 +77,7 @@ const size_t BUFSIZE = 256;
 #define ROPRANK (GetOpRank (R -> value.opval))
 // -----------------------------------------------------------------------
 
-int LoadTree (Tree_t *tree, double *x0, const char *filename);
+int LoadTree (Tree_t *tree, double *x0, int *taylor_pow, const char *filename);
 
 int ReadTree (Tree_t *tree, char *input_str);
 
@@ -106,7 +108,7 @@ void Print_tree (FILE *file, TreeElem_t *elem);
 
 int Tree_get_size (TreeElem_t *elem);
 
-int GeneratePdf (Tree_t *func_tree, double x0);
+int GeneratePdf (Tree_t *func_tree, double x0, int taylor_pow);
 
 
 int GetDerivative (Tree_t *der_tree, Tree_t *func_tree, char var, FILE *texfile);
@@ -151,10 +153,14 @@ TreeElem_t *Replace_with_num (TreeElem_t *elem, int *size, double num);
 
 int GetSlope (Tree_t *slope_tree, Tree_t *func_tree, Tree_t *der_tree, double x0, FILE *texfile);
 
-double GetFuncVal (Tree_t *func_tree, double x0);
+double GetFuncVal (TreeElem_t *elem, double x0);
 
 TreeElem_t *Replace_var_with_num (TreeElem_t *elem, char var, double num);
 
+
+int GetTaylor (Tree_t *taylor_tree, Tree_t *func_tree, Tree_t *der_tree, int max_pow, FILE *texfile);
+
+long long Fact (int x);
 
 
 int CompareTrees (TreeElem_t *elem1, TreeElem_t *elem2);

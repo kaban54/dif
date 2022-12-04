@@ -1,7 +1,7 @@
 #include "dif.h"
 
 
-int LoadTree (Tree_t *tree, double *x0, const char *filename)
+int LoadTree (Tree_t *tree, double *x0, int *taylor_pow, const char *filename)
 {
     TreeVerify (tree);
     if (filename == nullptr) TreeErr (tree, TREE_NULLPTR_ARG);
@@ -17,6 +17,7 @@ int LoadTree (Tree_t *tree, double *x0, const char *filename)
     tree -> err |= ReadTree (tree, func_str);
 
     fscanf (file, "%lf", x0);
+    fscanf (file,  "%d", taylor_pow);
 
     fclose (file);
     TreeVerify (tree);
@@ -63,7 +64,7 @@ int Tree_get_size (TreeElem_t *elem)
 }
 
 
-int GeneratePdf (Tree_t *func_tree, double x0)
+int GeneratePdf (Tree_t *func_tree, double x0, int taylor_pow)
 {
     TreeVerify (func_tree);
 
@@ -91,9 +92,16 @@ int GeneratePdf (Tree_t *func_tree, double x0)
     TreeDump (&slope_tree);
     fflush (LOG);
 
+    Tree_t taylor_tree = {};
+    TreeCtor (&taylor_tree);
+    GetTaylor (&taylor_tree, func_tree, &der_tree, taylor_pow, texfile);
+    TreeDump (&taylor_tree);
+    fflush (LOG);
+
     Print_tex_bottom (texfile);
     fclose (texfile);
 
+    TreeDtor (&taylor_tree);
     TreeDtor (&slope_tree);
     TreeDtor (&der_tree);
 
@@ -604,8 +612,8 @@ int GetSlope (Tree_t *slope_tree, Tree_t *func_tree, Tree_t *der_tree, double x0
     if ((int) x0 == x0) fprintf (texfile, "$$x_0 = %d $$\n", (int) x0);
     else                fprintf (texfile, "$$x_0 = %lf$$\n",       x0);
 
-    double func_val = GetFuncVal (func_tree, x0);
-    double  der_val = GetFuncVal ( der_tree, x0);
+    double func_val = GetFuncVal (func_tree -> data.left, x0);
+    double  der_val = GetFuncVal ( der_tree -> data.left, x0);
 
     slope_tree -> data.left = ADD (MUL (NUM (der_val), SUB (VAR ('x'), NUM (x0))), NUM (func_val));
     slope_tree -> data.left -> parent = &(slope_tree -> data);
@@ -627,10 +635,9 @@ int GetSlope (Tree_t *slope_tree, Tree_t *func_tree, Tree_t *der_tree, double x0
     return TREE_OK;
 }
 
-double GetFuncVal (Tree_t *func_tree, double x0)
+double GetFuncVal (TreeElem_t *elem, double x0)
 {
-    TreeVerify (func_tree);
-    TreeElem_t *func_copy = copy (func_tree -> data.left);
+    TreeElem_t *func_copy = copy (elem);
     func_copy = Replace_var_with_num (func_copy, 'x', x0);
     func_copy = CalculateConsts (func_copy, NULL);
 
@@ -654,6 +661,73 @@ TreeElem_t *Replace_var_with_num (TreeElem_t *elem, char var, double num)
     return elem;
 }
 
+
+int GetTaylor (Tree_t *taylor_tree, Tree_t *func_tree, Tree_t *der_tree, int max_pow, FILE *texfile)
+{
+    TreeVerify (taylor_tree);
+    TreeVerify (func_tree);
+    TreeVerify (der_tree);
+    if (texfile == nullptr) return TREE_NULLPTR_ARG;
+    if (max_pow <= 0 || max_pow > MAX_TAYLOR_POW) return TREE_INCORRECT_FORMAT;
+
+    fprintf (texfile, "\\newpage\n");
+    fprintf (texfile, "\\begin{center}\n"
+                      "{\\large \\bf Разложение функции в ряд Маклорена.}\n"
+                      "\\end{center}\n");
+
+    double func_val = GetFuncVal (func_tree -> data.left, 0);
+    fprintf (texfile, "Значение функции при $x = 0$ равно $%lf$.\n", func_val);
+
+    TreeElem_t *buf  = nullptr;
+    TreeElem_t *der  = der_tree -> data.left;
+
+    fprintf (texfile, "1-я производная функции равна");
+    PrintTreeTex (texfile, der);
+    double der_val = GetFuncVal (der, 0);
+    fprintf (texfile, "Значение 1-й производной при $x = 0$ равно $%lf$.\n", der_val);
+
+    TreeElem_t *elem = ADD (NUM (func_val), MUL (NUM (der_val), VAR ('x')));
+
+    for (int pow = 2; pow <= max_pow; pow++)
+    {
+        fprintf (texfile, "Найдём  %d-ю производную функции.\n", pow);
+        buf = der;
+        der = diff (buf, 'x', texfile);
+        if (pow != 2) Tree_free_data (buf, NULL);
+        
+        fprintf (texfile, "%d-я производная функции равна", pow);
+        PrintTreeTex (texfile, der);
+        der_val = GetFuncVal (der, 0);
+        fprintf (texfile, "Значение %d-й производной при $x = 0$ равно $%lf$.\n", pow, der_val);
+
+        elem = ADD (elem, MUL (DIV (NUM (der_val), NUM ((double) Fact (pow))), POW (VAR ('x'), NUM (pow))));
+    }
+    Tree_free_data (der, NULL);
+
+    fprintf (texfile, "Разложение функции в ряд Маклорена до $x^%d$:", max_pow);
+    PrintTreeTex (texfile, elem);
+    elem = Simplify (elem, texfile);
+
+    taylor_tree -> data.left = elem;
+    P = &(taylor_tree -> data);
+    taylor_tree -> size = Tree_get_size (elem);
+
+    TreeVerify (taylor_tree);
+    TreeVerify (func_tree);
+    TreeVerify (der_tree);
+
+    return TREE_OK;
+}
+
+long long Fact (int x)
+{
+    if (x <= 1) return 1;
+
+    long long ret = 1;
+    for (; x > 1; x--) ret *= x;
+
+    return ret;
+}
 
 void Print_tex_top (FILE *texfile)
 {
