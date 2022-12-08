@@ -1,0 +1,5 @@
+reset
+set terminal png size 1600, 1200
+set grid
+set samples 10000
+set xrange [-8 : 8]

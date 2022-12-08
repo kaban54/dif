@@ -15,13 +15,16 @@ int main()
     int taylor_pow = 0;
 
     LoadTree (&func_tree, &x0, &taylor_pow, "testtree.txt");
+    char *settings = LoadGnuplotSettings (PLOTSETTINGS);
+
     TreeDump (&func_tree);
     fflush (LOG);
 
-    GeneratePdf (&func_tree, x0, taylor_pow);
+    GeneratePdf (&func_tree, x0, taylor_pow, settings);
 
     TreeDtor (&func_tree);
-    
+    free (settings);
+
     fclose (LOG);
     return 0;
 }   

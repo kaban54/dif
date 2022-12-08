@@ -1,46 +1,46 @@
 <pre>
 <pre>
 
-Tree dump from (int main()) at (main.cpp) at line (18):
-tree [000000e6bd1ffd20] "&func_tree" at (int main()) at (main.cpp)(12):
+Tree dump from (int main()) at (main.cpp) at line (20):
+tree [0000000914dff880] "&func_tree" at (int main()) at (main.cpp)(12):
 {
 	status   = 1
 	error    = 0
-	size     = 3
+	size     = 13
 
-	((2)^(x))
+	((((0)sin(x))^(2))+((3)*((0)cos((5)*(x)))))
 }
-<img src="./images/dumpimg700.png", width="80%"><pre>
+<img src="./images/dumpimg732.png", width="80%"><pre>
 
-Tree dump from (int GeneratePdf(Tree_t*, double, int)) at (dif.cpp) at line (86):
-tree [000000e6bd1ffc40] "&der_tree" at (int GeneratePdf(Tree_t*, double, int)) at (dif.cpp)(84):
+Tree dump from (int GeneratePdf(Tree_t*, double, int, char*)) at (dif.cpp) at line (116):
+tree [0000000914dff7a0] "&der_tree" at (int GeneratePdf(Tree_t*, double, int, char*)) at (dif.cpp)(114):
 {
 	status   = 1
 	error    = 0
-	size     = 5
+	size     = 21
 
-	((0.693147)*((2)^(x)))
+	(((2)*(((0)sin(x))*((0)cos(x))))+((3)*((-1)*(((0)sin((5)*(x)))*(5)))))
 }
-<img src="./images/dumpimg701.png", width="80%"><pre>
+<img src="./images/dumpimg733.png", width="80%"><pre>
 
-Tree dump from (int GeneratePdf(Tree_t*, double, int)) at (dif.cpp) at line (92):
-tree [000000e6bd1ffbe0] "&slope_tree" at (int GeneratePdf(Tree_t*, double, int)) at (dif.cpp)(90):
+Tree dump from (int GeneratePdf(Tree_t*, double, int, char*)) at (dif.cpp) at line (122):
+tree [0000000914dff740] "&slope_tree" at (int GeneratePdf(Tree_t*, double, int, char*)) at (dif.cpp)(120):
 {
 	status   = 1
 	error    = 0
 	size     = 7
 
-	(((1.386294)*((x)-(1)))+(2))
+	(((15.293162)*((x)-(1)))+(1.559060))
 }
-<img src="./images/dumpimg702.png", width="80%"><pre>
+<img src="./images/dumpimg734.png", width="80%"><pre>
 
-Tree dump from (int GeneratePdf(Tree_t*, double, int)) at (dif.cpp) at line (98):
-tree [000000e6bd1ffb80] "&taylor_tree" at (int GeneratePdf(Tree_t*, double, int)) at (dif.cpp)(96):
+Tree dump from (int GeneratePdf(Tree_t*, double, int, char*)) at (dif.cpp) at line (128):
+tree [0000000914dff6e0] "&taylor_tree" at (int GeneratePdf(Tree_t*, double, int, char*)) at (dif.cpp)(126):
 {
 	status   = 1
 	error    = 0
-	size     = 17
+	size     = 7
 
-	((((1)+((0.693147)*(x)))+((0.240227)*((x)^(2))))+((0.055504)*((x)^(3))))
+	((3)+((-36.500000)*((x)^(2))))
 }
-<img src="./images/dumpimg703.png", width="80%">
+<img src="./images/dumpimg735.png", width="80%">

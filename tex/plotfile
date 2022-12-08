@@ -1,5 +1,8 @@
 reset
 set terminal png size 1600, 1200
-set output "tex/images/plotimg192.png"
 set grid
-plot ((2)**(x)) title "", (((1.386294)*((x)-(1)))+(2)) title ""
+set samples 10000
+set xrange [-8 : 8]
+set yrange [-10 : 10]
+set output "tex/images/plotimg216.png"
+plot (((sin(x))**(2))+((3)*(cos((5)*(x))))) title "", (((15.293162)*((x)-(1)))+(1.559060)) title ""

@@ -7,7 +7,9 @@
 #include <ctype.h>
 #include <string.h>
 #include <math.h>
+#include <sys/stat.h>
 
+const char *const PLOTSETTINGS = "tex/plotsettings.txt";
 const char *const  TEXFILENAME = "tex/texfile.tex";
 const char *const PLOTFILENAME = "tex/plotfile";
 
@@ -101,6 +103,10 @@ TreeElem_t *GetVar (char **s_ptr);
 
 char *StrSkipSpaces (char *str);
 
+char *LoadGnuplotSettings (const char *filename);
+
+size_t GetSize (FILE *inp_file);
+
 
 int SaveTree (Tree_t *tree, const char *filename);
 
@@ -108,10 +114,10 @@ void Print_tree (FILE *file, TreeElem_t *elem);
 
 int Tree_get_size (TreeElem_t *elem);
 
-int GeneratePdf (Tree_t *func_tree, double x0, int taylor_pow);
+int GeneratePdf (Tree_t *func_tree, double x0, int taylor_pow, char *plotsettings);
 
 
-int GetDerivative (Tree_t *der_tree, Tree_t *func_tree, char var, FILE *texfile);
+int GetDerivative (Tree_t *der_tree, Tree_t *func_tree, char var, char *plotsettings, FILE *texfile);
 
 TreeElem_t *diff (TreeElem_t *elem, char var, FILE *texfile);
 
@@ -151,7 +157,7 @@ TreeElem_t *Replace_with_right (TreeElem_t *elem, int *size);
 TreeElem_t *Replace_with_num (TreeElem_t *elem, int *size, double num);
 
 
-int GetSlope (Tree_t *slope_tree, Tree_t *func_tree, Tree_t *der_tree, double x0, FILE *texfile);
+int GetSlope (Tree_t *slope_tree, Tree_t *func_tree, Tree_t *der_tree, double x0, char *plotsettings, FILE *texfile);
 
 double GetFuncVal (TreeElem_t *elem, double x0);
 
@@ -195,9 +201,9 @@ int OneArgOp (int op);
 int GetOpRank (int op);
 
 
-void Print_img_tex (FILE *texfile, int number_of_funcs, TreeElem_t **funcs, const char *caption);
+void Print_img_tex (FILE *texfile, char *settings, int number_of_funcs, TreeElem_t **funcs, const char *caption);
 
-void GeneratePlotImg (int number_of_funcs, TreeElem_t **funcs, int imgnum);
+void GeneratePlotImg (char *settings, int number_of_funcs, TreeElem_t **funcs, int imgnum);
 
 void Print_gnuplot_exp (FILE *plotfile, TreeElem_t *elem);
 
