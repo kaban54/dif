@@ -164,7 +164,7 @@ double GetFuncVal (TreeElem_t *elem, double x0);
 TreeElem_t *Replace_var_with_num (TreeElem_t *elem, char var, double num);
 
 
-int GetTaylor (Tree_t *taylor_tree, Tree_t *func_tree, Tree_t *der_tree, int max_pow, FILE *texfile);
+int GetTaylor (Tree_t *taylor_tree, Tree_t *func_tree, Tree_t *der_tree, double x0, int max_pow, FILE *texfile);
 
 long long Fact (int x);
 
@@ -195,6 +195,8 @@ void Print_frac_tex (FILE *texfile, TreeElem_t *elem);
 void Print_pow_tex (FILE *texfile, TreeElem_t *elem);
 
 void PrintOpTex (FILE *texfile, int op);
+
+int Print_tex_number (FILE *file, double number);
 
 int OneArgOp (int op);
 

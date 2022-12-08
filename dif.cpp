@@ -124,7 +124,7 @@ int GeneratePdf (Tree_t *func_tree, double x0, int taylor_pow, char *plotsetting
 
     Tree_t taylor_tree = {};
     TreeCtor (&taylor_tree);
-    GetTaylor (&taylor_tree, func_tree, &der_tree, taylor_pow, texfile);
+    GetTaylor (&taylor_tree, func_tree, &der_tree, x0, taylor_pow, texfile);
     TreeDump (&taylor_tree);
     fflush (LOG);
 
@@ -692,7 +692,7 @@ TreeElem_t *Replace_var_with_num (TreeElem_t *elem, char var, double num)
 }
 
 
-int GetTaylor (Tree_t *taylor_tree, Tree_t *func_tree, Tree_t *der_tree, int max_pow, FILE *texfile)
+int GetTaylor (Tree_t *taylor_tree, Tree_t *func_tree, Tree_t *der_tree, double x0, int max_pow, FILE *texfile)
 {
     TreeVerify (taylor_tree);
     TreeVerify (func_tree);
@@ -700,29 +700,31 @@ int GetTaylor (Tree_t *taylor_tree, Tree_t *func_tree, Tree_t *der_tree, int max
     if (texfile == nullptr) return TREE_NULLPTR_ARG;
     if (max_pow <= 0 || max_pow > MAX_TAYLOR_POW) return TREE_INCORRECT_FORMAT;
 
-    fprintf (texfile, "\\newpage\n");
-    fprintf (texfile, "\\begin{center}\n"
-                      "{\\large \\bf Разложение функции в ряд Маклорена.}\n"
-                      "\\end{center}\n");
+    fprintf          (texfile, "\\newpage\n");
+    fprintf          (texfile, "\\begin{center}\n"
+                               "{\\large \\bf Разложение функции в ряд Тейлора в точке $x_0 = $");
+    Print_tex_number (texfile, x0);
+    fprintf          (texfile, ".}\n\\end{center}\n");
 
-    double func_val = GetFuncVal (func_tree -> data.left, 0);
+    double func_val = GetFuncVal (func_tree -> data.left, x0);
 
-    fprintf (texfile, "Значение функции при $x = 0$ равно ");
-    if (func_val == (int) func_val) fprintf (texfile,  "$%d$.\\\\\n", (int) func_val);
-    else                            fprintf (texfile, "$%lf$.\\\\\n",       func_val);
+    fprintf          (texfile, "Значение функции при $x = x_0$ равно ");
+    Print_tex_number (texfile, func_val);
+    fprintf          (texfile, ".\\\\\n");
 
     TreeElem_t *buf  = nullptr;
     TreeElem_t *der  = der_tree -> data.left;
 
-    fprintf (texfile, "1-я производная функции равна");
+    fprintf      (texfile, "1-я производная функции равна");
     PrintTreeTex (texfile, der);
-    double der_val = GetFuncVal (der, 0);
 
-    fprintf (texfile, "Значение 1-й производной при $x = 0$ равно ");
-    if (der_val == (int) der_val) fprintf (texfile,  "$%d$.\\\\\n", (int) der_val);
-    else                          fprintf (texfile, "$%lf$.\\\\\n",       der_val);
+    double der_val = GetFuncVal (der, x0);
+
+    fprintf          (texfile, "Значение 1-й производной при $x = x_0$ равно ");
+    Print_tex_number (texfile, der_val);
+    fprintf          (texfile, ".\\\\\n");
     
-    TreeElem_t *elem = ADD (NUM (func_val), MUL (NUM (der_val), VAR ('x')));
+    TreeElem_t *elem = ADD (NUM (func_val), MUL (NUM (der_val), SUB (VAR ('x'), NUM (x0))));
 
     for (int pow = 2; pow <= max_pow; pow++)
     {
@@ -733,17 +735,18 @@ int GetTaylor (Tree_t *taylor_tree, Tree_t *func_tree, Tree_t *der_tree, int max
         
         fprintf (texfile, "%d-я производная функции равна", pow);
         PrintTreeTex (texfile, der);
-        der_val = GetFuncVal (der, 0);
+        der_val = GetFuncVal (der, x0);
 
-        fprintf (texfile, "Значение %d-й производной при $x = 0$ равно ", pow);
-        if (der_val == (int) der_val) fprintf (texfile,  "$%d$.\\\\\n", (int) der_val);
-        else                          fprintf (texfile, "$%lf$.\\\\\n",       der_val);
+        fprintf          (texfile, "Значение %d-й производной при $x = x_0$ равно ", pow);
+        Print_tex_number (texfile, der_val);
+        fprintf          (texfile, ".\\\\\n");
 
-        elem = ADD (elem, MUL (DIV (NUM (der_val), NUM ((double) Fact (pow))), POW (VAR ('x'), NUM (pow))));
+
+        elem = ADD (elem, MUL (DIV (NUM (der_val), NUM ((double) Fact (pow))), POW ( SUB (VAR ('x'), NUM (x0)), NUM (pow))));
     }
     Tree_free_data (der, NULL);
 
-    fprintf (texfile, "Разложение функции в ряд Маклорена до $x^%d$:", max_pow);
+    fprintf (texfile, "Разложение функции в ряд Тейлора в точке $x_0$ до $x^%d$:", max_pow);
     PrintTreeTex (texfile, elem);
     elem = Simplify (elem, texfile);
 
@@ -1039,4 +1042,10 @@ void Print_gnuplot_op  (FILE *plotfile, int op)
     default:
         break;
     }
+}
+
+int Print_tex_number (FILE *file, double number)
+{   
+    if (number == (int) number) return fprintf (file,  "$%d$", (int) number);
+    else                        return fprintf (file, "$%lf$",       number);
 }
